@@ -2,15 +2,83 @@ name: Publish Release
 
 on:
   workflow_dispatch:
-  repository_dispatch:
-    types: [connector-release-pipeline]
+    inputs:
+      release-version:
+        description: 'Release version (e.g., 0.1.0)'
+        required: true
+      next-version:
+        description: 'Next development version (e.g., 0.1.1-SNAPSHOT)'
+        required: true
 
 jobs:
-  call_workflow:
-    name: Run Release Workflow
-    if: ${{ github.repository_owner == 'ballerina-platform' }}
-    uses: ballerina-platform/ballerina-library/.github/workflows/release-package-connector-template.yml@main
-    secrets: inherit
-    with:
-      package-name: icp.runtime.bridge
-      package-org: wso2
+  publish-release:
+    name: Build and Publish Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    env:
+      packageUser: ${{ github.actor }}
+      packagePAT: ${{ secrets.GITHUB_TOKEN }}
+      DOCKER_DEFAULT_PLATFORM: linux/amd64
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+      
+      - name: Set up JDK 21
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+      
+      - name: Set up Ballerina
+        uses: ballerina-platform/setup-ballerina@v1.1.0
+        with:
+          version: 2201.13.2
+      
+      - name: Configure Git
+        run: |
+          git config user.name "${{ github.actor }}"
+          git config user.email "${{ github.actor }}@users.noreply.github.com"
+      
+      - name: Grant execute permission for gradlew
+        run: chmod +x gradlew
+      
+      - name: Update version to release version
+        run: |
+          sed -i 's/version=.*/version=${{ github.event.inputs.release-version }}/' gradle.properties
+          git add gradle.properties
+          git commit -m "[Release] Release version ${{ github.event.inputs.release-version }}"
+      
+      - name: Build and Publish to GitHub Packages
+        run: ./gradlew clean build publish --stacktrace --no-daemon
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v${{ github.event.inputs.release-version }}
+          name: Release v${{ github.event.inputs.release-version }}
+          body: |
+            Release of icp-runtime-bridge version ${{ github.event.inputs.release-version }}
+            
+            **Package Details:**
+            - Organization: wso2
+            - Package: icp.runtime.bridge
+            - Version: ${{ github.event.inputs.release-version }}
+          files: |
+            ballerina/build/distributions/*.zip
+            ballerina/build/libs/*.jar
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Update version to next development version
+        run: |
+          git tag v${{ github.event.inputs.release-version }}
+          git push origin v${{ github.event.inputs.release-version }}
+          sed -i 's/version=.*/version=${{ github.event.inputs.next-version }}/' gradle.properties
+          git add gradle.properties
+          git commit -m "[Release] Prepare for next development iteration ${{ github.event.inputs.next-version }}"
+          git push origin main

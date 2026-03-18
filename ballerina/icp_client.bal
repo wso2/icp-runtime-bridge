@@ -19,13 +19,12 @@ import ballerina/log;
 # This client is responsible for communicating with the ICP server to send heartbeats and receive control commands
 public client class IcpClient {
     private final http:Client httpClient;
-    private final string jwtToken;
 
     public function init(IcpConfig config) returns http:ClientError? {
         self.httpClient = check new (config.serverUrl,
             secureSocket = {
-                cert: cert,
-                enable: enableSSL
+                cert: config.cert,
+                enable: config.enableSSL
             },
             retryConfig = {
                 count: 2,
