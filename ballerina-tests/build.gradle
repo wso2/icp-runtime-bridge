@@ -1,0 +1,294 @@
+/*
+ * Copyright (c) 2026, WSO2 LLC. (http://wso2.com).
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+plugins {
+    id 'jacoco'
+}
+
+apply plugin: 'java'
+
+import org.apache.tools.ant.taskdefs.condition.Os
+
+description = 'Ballerina - WSO2 Control Plane Tests'
+
+def packageName = "icp.runtime.bridge"
+def packageOrg = "wso2"
+def moduleName = "tests"
+def tomlVersion = stripBallerinaExtensionVersion("${project.version}")
+def ballerinaTomlFilePlaceHolder = new File("${project.rootDir}/build-config/resources/BallerinaTest.toml")
+def testCoverageParams = "--code-coverage --coverage-format=xml --includes=io.ballerina.lib.wso2.icp.*:ballerina." +
+        "icp.runtime.bridge*"
+def testPackages = ["artifacts-tests"]
+
+def stripBallerinaExtensionVersion(String extVersion) {
+    if (extVersion.matches(project.ext.timestampedVersionRegex)) {
+        def splitVersion = extVersion.split('-')
+        if (splitVersion.length > 3) {
+            def strippedValues = splitVersion[0..-4]
+            return strippedValues.join('-')
+        } else {
+            return extVersion
+        }
+    } else {
+        return extVersion.replace("${project.ext.snapshotVersion}", "")
+    }
+}
+
+clean {
+    testPackages.each { testPackage ->
+        delete "${project.projectDir}/${testPackage}/target"
+    }
+}
+
+jar {
+    manifest {
+        attributes('Implementation-Title': project.name,
+                'Implementation-Version': project.version)
+    }
+}
+
+task updateTomlVersions {
+    doLast {
+        testPackages.each { testPackage ->
+            def ballerinaTomlFile =  new File("${project.projectDir}/${testPackage}/Ballerina.toml")
+            def newBallerinaToml = ballerinaTomlFilePlaceHolder.text.replace("@project.version@", project.version)
+            newBallerinaToml = newBallerinaToml.replace("@toml.version@", tomlVersion)
+            newBallerinaToml = newBallerinaToml.replace("@package.name@", testPackage.replaceAll("-", "_"))
+            ballerinaTomlFile.text = newBallerinaToml
+        }
+    }
+}
+
+task commitTomlFiles {
+    onlyIf { System.getenv("CI") != null }
+    doLast {
+        def files = " "
+        testPackages.each{ testPackage ->
+            files += "${testPackage}/Ballerina.toml ${testPackage}/Dependencies.toml "
+        }
+
+        project.exec {
+            ignoreExitValue true
+            if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+                commandLine 'cmd', '/c', "git commit -m \"[Automated] Update the native jar versions\" ${files}"
+            } else {
+                commandLine 'sh', '-c', "git commit -m '[Automated] Update the native jar versions' ${files}"
+            }
+        }
+    }
+}
+
+def groupParams = ""
+def disableGroups = ""
+def windowsDisableGroups = "--disable-groups disabledOnWindows"
+def debugParams = ""
+def balJavaDebugParam = ""
+def testParams = ""
+def graalvmFlag = ""
+def parallelTestFlag = ""
+def skipTests = false
+def ballerinaDockerTag = ""
+def projectDirectory = new File("$project.projectDir")
+def parentDirectory = new File("$projectDirectory.parent")
+
+task initializeVariables {
+    if (project.hasProperty("groups")) {
+        groupParams = "--groups ${project.findProperty("groups")}"
+    }
+    if (project.hasProperty("disable")) {
+        disableGroups = "--disable-groups ${project.findProperty("disable")}"
+    }
+    if (project.hasProperty("debug")) {
+        debugParams = "--debug ${project.findProperty("debug")}"
+    }
+    if (project.hasProperty("balJavaDebug")) {
+        balJavaDebugParam = "BAL_JAVA_DEBUG=${project.findProperty("balJavaDebug")}"
+    }
+    if (project.hasProperty('balGraalVMTest')) {
+        graalvmFlag = '--graalvm'
+    }
+    if (project.hasProperty('balParallelTest')) {
+        parallelTestFlag = '--parallel'
+    }
+    if (project.hasProperty('balTests')) {
+        testPackages = project.findProperty('balTests').toString().split(",")
+    }
+    if (project.hasProperty('skipBalTests')) {
+        project.findProperty('skipBalTests').toString().split(",").each {testPackage ->
+            testPackages.remove(testPackage)
+        }
+    }
+    if (!project.hasProperty('useLocalBal')) {
+        ballerinaDockerTag = getDockerImageTag(project)
+        println("[Info] project builds on docker")
+        println("[Info] using the Ballerina docker image tag: $ballerinaDockerTag")
+    } else {
+        println("[Info] project builds using local Ballerina installation")
+    }
+
+    gradle.taskGraph.whenReady { graph ->
+        if (graph.hasTask(":${packageName}-ballerina-tests:test")) {
+            if (!project.hasProperty('balGraalVMTest')) {
+                testParams = "${testCoverageParams}"
+            }
+        } else {
+            skipTests = true
+        }
+    }
+}
+
+static String getDockerImageTag(Project project) {
+    def ballerinaDockerTag = project.findProperty('ballerinaLangVersion')
+    if (project.hasProperty('buildUsingDocker')) {
+        ballerinaDockerTag = project.findProperty('buildUsingDocker')
+        if (ballerinaDockerTag == '') {
+            return 'nightly'
+        }
+    }
+    if (isTimeStampVersion(ballerinaDockerTag as String)) {
+        return 'nightly'
+    }
+    return ballerinaDockerTag
+}
+
+static boolean isTimeStampVersion(String version) {
+    return version.trim().split("-").length > 1
+}
+
+static void createDockerEnvFile(String dockerEnvFilePath) {
+    def dockerEnvFile = new File(dockerEnvFilePath)
+    // Ensure parent directory exists
+    dockerEnvFile.getParentFile().mkdirs()
+    
+    def dockerEnvFileWriter = new PrintWriter(dockerEnvFile, "UTF-8")
+    // Explicit allowlist of environment variables safe to pass to container
+    def allowedVariables = ["CI", "GITHUB_ACTIONS", "USER", "LANG", "LC_ALL"]
+    // Force Docker to use linux/amd64 platform for Apple Silicon compatibility
+    dockerEnvFileWriter.println("DOCKER_DEFAULT_PLATFORM=linux/amd64")
+    allowedVariables.each { key ->
+        def value = System.getenv(key)
+        if (value != null) {
+            dockerEnvFileWriter.println("$key=$value")
+        }
+    }
+    dockerEnvFileWriter.close()
+}
+
+static void deleteFile(String filePath) {
+    def file = new File(filePath)
+    if (file.exists() && !file.delete()) {
+        println("Failed to delete $filePath.")
+    }
+}
+
+task ballerinaTest {
+    inputs.dir file(project.projectDir)
+    dependsOn(":${packageName}-${packageOrg}:build")
+    dependsOn(updateTomlVersions)
+    dependsOn(initializeVariables)
+    dependsOn(":${packageName}-${packageOrg}-${moduleName}:compileJava")
+    dependsOn(":${packageName}-${packageOrg}-${moduleName}:jar")
+    dependsOn(":${packageName}-${packageOrg}-${moduleName}:processResources")
+    dependsOn(compileTestJava)
+    dependsOn(processTestResources)
+    finalizedBy(commitTomlFiles)
+
+    doLast {
+        testPackages.each { testPackage ->
+            if (!skipTests) {
+                def dockerEnvPath = "$project.projectDir/$testPackage/docker.env"
+                try {
+                    exec {
+                        workingDir "${project.projectDir}/${testPackage}"
+                        environment "JAVA_OPTS", "-DBALLERINA_DEV_COMPILE_BALLERINA_ORG=true"
+                        if (Os.isFamily(Os.FAMILY_WINDOWS)) {
+                            disableGroups = disableGroups + windowsDisableGroups
+                        }
+                        
+                        if (!project.hasProperty('useLocalBal')) {
+                            // Docker-based build (default)
+                            createDockerEnvFile(dockerEnvPath)
+                            
+                            // Build Docker command as a list to prevent injection
+                            def dockerArgs = ['docker', 'run', '--env-file', dockerEnvPath, 
+                                             '--rm', '--net=host', '-u', 'root',
+                                             '-v', "${parentDirectory}:/home/ballerina/${parentDirectory.name}",
+                                             '-v', "${projectDirectory}/${testPackage}:/home/ballerina/${parentDirectory.name}/${projectDirectory.name}/${testPackage}",
+                                             "ballerina/ballerina:${ballerinaDockerTag}",
+                                             '/bin/sh', '-c']
+                            
+                            // Build the inner bal test command
+                            def innerCmd = "cd ${parentDirectory.name}/${projectDirectory.name}/${testPackage}"
+                            if (balJavaDebugParam) {
+                                innerCmd += " && ${balJavaDebugParam}"
+                            }
+                            innerCmd += " && bal test"
+                            if (graalvmFlag) innerCmd += " ${graalvmFlag}"
+                            if (parallelTestFlag) innerCmd += " ${parallelTestFlag}"
+                            if (testParams) innerCmd += " ${testParams}"
+                            if (groupParams) innerCmd += " ${groupParams}"
+                            if (disableGroups) innerCmd += " ${disableGroups}"
+                            if (debugParams) innerCmd += " ${debugParams}"
+                            
+                            dockerArgs.add(innerCmd)
+                            commandLine dockerArgs
+                        } else {
+                            // Local Ballerina build - use list of arguments
+                            def balArgs = ['bal', 'test']
+                            if (graalvmFlag) balArgs.add(graalvmFlag)
+                            if (parallelTestFlag) balArgs.add(parallelTestFlag)
+                            if (testParams) balArgs.addAll(testParams.split(/\s+/))
+                            if (groupParams) balArgs.addAll(groupParams.split(/\s+/))
+                            if (disableGroups) balArgs.addAll(disableGroups.split(/\s+/))
+                            if (debugParams) balArgs.addAll(debugParams.split(/\s+/))
+                            
+                            commandLine balArgs
+                        }
+                    }
+                } finally {
+                    // Clean up docker.env file after exec completes
+                    if (!project.hasProperty('useLocalBal')) {
+                        deleteFile(dockerEnvPath)
+                    }
+                }
+            }
+        }
+    }
+}
+
+publishing {
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/ballerina-platform/module-${packageOrg}x-${packageName}")
+            credentials {
+                username = System.getenv("packageUser")
+                password = System.getenv("packagePAT")
+            }
+        }
+    }
+}
+
+task deleteDependencyTomlFile {
+    if (project.hasProperty("deleteDependencies")) {
+        testPackages.each { testPackage ->
+            delete "${project.projectDir}/${testPackage}/Dependencies.toml"
+        }
+    }
+}
+
+ballerinaTest.dependsOn deleteDependencyTomlFile
+test.dependsOn ballerinaTest
+build.dependsOn test

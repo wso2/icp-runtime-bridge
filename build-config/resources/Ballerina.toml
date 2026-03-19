@@ -1,0 +1,13 @@
+[package]
+org = "wso2"
+name = "icp.runtime.bridge"
+version = "@toml.version@"
+distribution = "@ballerina.version@"
+repository = "https://github.com/ballerina-platform/module-wso2-icp.runtime.bridge"
+license = ["Apache-2.0"]
+
+[platform.java21]
+graalvmCompatible = true
+
+[[platform.java21.dependency]]
+path = "../native/build/libs/icp.runtime.bridge-native-@project.version@.jar"

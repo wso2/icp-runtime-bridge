@@ -1,0 +1,10 @@
+[package]
+org = "wso2"
+name = "@package.name@"
+version = "@toml.version@"
+
+[platform.java21]
+graalvmCompatible = true
+
+[build-options]
+remoteManagement=true
