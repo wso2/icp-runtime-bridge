@@ -42,6 +42,11 @@ jobs:
           distribution: 'temurin'
           java-version: '21'
       
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+      
       - name: Set up Ballerina
         uses: ballerina-platform/setup-ballerina@v1.1.0
         with:
@@ -55,6 +60,17 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       
+      - name: Validate release version
+        run: |
+          if git rev-parse "v${{ github.event.inputs.release-version }}" >/dev/null 2>&1; then
+            echo "::error::Tag v${{ github.event.inputs.release-version }} already exists"
+            exit 1
+          fi
+          if ! echo "${{ github.event.inputs.release-version }}" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Invalid version format. Expected format: X.Y.Z (e.g., 1.0.0)"
+            exit 1
+          fi
+      
       - name: Dry Run Mode Notice
         if: ${{ github.event.inputs.dry-run == 'true' }}
         run: |
@@ -67,6 +83,10 @@ jobs:
           sed -i 's/icp.runtime.bridge-native-.*.jar/icp.runtime.bridge-native-${{ github.event.inputs.release-version }}.jar/' ballerina/Ballerina.toml
           git add gradle.properties ballerina/Ballerina.toml
           git commit -m "[Release] Release version ${{ github.event.inputs.release-version }}"
+      
+      - name: Push release version commit
+        if: ${{ github.event.inputs.dry-run != 'true' }}
+        run: git push origin HEAD:${{ github.ref_name }}
       
       - name: Build (Dry Run)
         if: ${{ github.event.inputs.dry-run == 'true' }}
@@ -109,9 +129,11 @@ jobs:
       - name: Update version to next development version
         run: |
           sed -i 's/version=.*/version=${{ github.event.inputs.next-version }}/' gradle.properties
-          git add gradle.properties
+          sed -i 's/version = ".*/version = "${{ github.event.inputs.next-version }}"/' ballerina/Ballerina.toml
+          sed -i 's/icp.runtime.bridge-native-.*.jar/icp.runtime.bridge-native-${{ github.event.inputs.next-version }}.jar/' ballerina/Ballerina.toml
+          git add gradle.properties ballerina/Ballerina.toml
           git commit -m "[Release] Prepare for next development iteration ${{ github.event.inputs.next-version }}"
       
       - name: Push changes
         if: ${{ github.event.inputs.dry-run != 'true' }}
-        run: git push origin main
+        run: git push origin HEAD:${{ github.ref_name }}
