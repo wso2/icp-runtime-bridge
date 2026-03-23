@@ -9,6 +9,16 @@ on:
       next-version:
         description: 'Next development version (e.g., 0.1.1-SNAPSHOT)'
         required: true
+      publish-to-central:
+        description: 'Publish to Ballerina Central'
+        required: false
+        type: boolean
+        default: false
+      dry-run:
+        description: 'Dry run mode (skips publish, release creation, and push)'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   publish-release:
@@ -45,16 +55,38 @@ jobs:
       - name: Grant execute permission for gradlew
         run: chmod +x gradlew
       
+      - name: Dry Run Mode Notice
+        if: ${{ github.event.inputs.dry-run == 'true' }}
+        run: |
+          echo "::notice::Running in DRY RUN mode - no packages will be published, no releases created, and no changes will be pushed"
+      
       - name: Update version to release version
         run: |
           sed -i 's/version=.*/version=${{ github.event.inputs.release-version }}/' gradle.properties
-          git add gradle.properties
+          sed -i 's/version = ".*/version = "${{ github.event.inputs.release-version }}"/' ballerina/Ballerina.toml
+          sed -i 's/icp.runtime.bridge-native-.*.jar/icp.runtime.bridge-native-${{ github.event.inputs.release-version }}.jar/' ballerina/Ballerina.toml
+          git add gradle.properties ballerina/Ballerina.toml
           git commit -m "[Release] Release version ${{ github.event.inputs.release-version }}"
       
+      - name: Build (Dry Run)
+        if: ${{ github.event.inputs.dry-run == 'true' }}
+        run: ./gradlew clean build --stacktrace --no-daemon
+      
       - name: Build and Publish to GitHub Packages
+        if: ${{ github.event.inputs.dry-run != 'true' }}
         run: ./gradlew clean build publish --stacktrace --no-daemon
       
+      - name: Publish to Ballerina Central
+        if: ${{ github.event.inputs.dry-run != 'true' && github.event.inputs.publish-to-central == 'true' }}
+        env:
+          BALLERINA_CENTRAL_ACCESS_TOKEN: ${{ secrets.BALLERINA_CENTRAL_ACCESS_TOKEN }}
+        run: |
+          cd ballerina
+          bal pack
+          bal push
+      
       - name: Create GitHub Release
+        if: ${{ github.event.inputs.dry-run != 'true' }}
         uses: softprops/action-gh-release@v2.6.1
         with:
           tag_name: v${{ github.event.inputs.release-version }}
@@ -79,4 +111,7 @@ jobs:
           sed -i 's/version=.*/version=${{ github.event.inputs.next-version }}/' gradle.properties
           git add gradle.properties
           git commit -m "[Release] Prepare for next development iteration ${{ github.event.inputs.next-version }}"
-          git push origin main
+      
+      - name: Push changes
+        if: ${{ github.event.inputs.dry-run != 'true' }}
+        run: git push origin main
