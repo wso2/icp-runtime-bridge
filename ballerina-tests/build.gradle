@@ -24,7 +24,8 @@ import org.apache.tools.ant.taskdefs.condition.Os
 description = 'Ballerina - WSO2 Control Plane Tests'
 
 def packageName = "icp.runtime.bridge"
-def packageOrg = "wso2"
+def packageOrg = "wso2"  // Ballerina package org for Maven publishing
+def gradleProjectOrg = "ballerina"  // Gradle project name component
 def moduleName = "tests"
 def tomlVersion = stripBallerinaExtensionVersion("${project.version}")
 def ballerinaTomlFilePlaceHolder = new File("${project.rootDir}/build-config/resources/BallerinaTest.toml")
@@ -195,12 +196,12 @@ static void deleteFile(String filePath) {
 
 task ballerinaTest {
     inputs.dir file(project.projectDir)
-    dependsOn(":${packageName}-${packageOrg}:build")
+    dependsOn(":${packageName}-${gradleProjectOrg}:build")
     dependsOn(updateTomlVersions)
     dependsOn(initializeVariables)
-    dependsOn(":${packageName}-${packageOrg}-${moduleName}:compileJava")
-    dependsOn(":${packageName}-${packageOrg}-${moduleName}:jar")
-    dependsOn(":${packageName}-${packageOrg}-${moduleName}:processResources")
+    dependsOn(":${packageName}-${gradleProjectOrg}-${moduleName}:compileJava")
+    dependsOn(":${packageName}-${gradleProjectOrg}-${moduleName}:jar")
+    dependsOn(":${packageName}-${gradleProjectOrg}-${moduleName}:processResources")
     dependsOn(compileTestJava)
     dependsOn(processTestResources)
     finalizedBy(commitTomlFiles)
