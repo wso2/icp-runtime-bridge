@@ -41,7 +41,7 @@ public client class IcpClient {
         request.setPayload(deltaHeartbeat);
         HeartbeatResponse heartbeatResponse = check self.httpClient->post("/icp/deltaHeartbeat", request);
         if heartbeatResponse.acknowledged {
-            log:printInfo("Delta heartbeat acknowledged by ICP server");
+            log:printDebug("Delta heartbeat acknowledged by ICP server");
         } else {
             log:printError("Delta heartbeat not acknowledged by ICP server: " + heartbeatResponse.toJsonString());
             return error("Delta heartbeat not acknowledged");
