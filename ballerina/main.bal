@@ -86,7 +86,7 @@ public class HeartbeatJob {
                 log:printError("Failed to create delta heartbeat", deltaHeartbeat);
                 return;
             }
-            log:printInfo("Sending delta heartbeat to ICP server");
+            log:printDebug("Sending delta heartbeat to ICP server");
             heartbeatResponse = self.icpClient->sendDeltaHeartbeat(deltaHeartbeat);
         }
         if heartbeatResponse is error {
@@ -97,7 +97,7 @@ public class HeartbeatJob {
             return;
         }
         self.fullHeartbeatRequired = heartbeatResponse.fullHeartbeatRequired ?: false;
-        log:printInfo("Heartbeat acknowledged by ICP server");
+        log:printDebug("Heartbeat acknowledged by ICP server");
         self.handleControlCommands(heartbeatResponse.commands);
     }
 
