@@ -15,10 +15,11 @@
 import ballerina/log;
 import ballerina/time;
 
+final string HEARTBEAT_VERSION = "v1.0";
+
 // === Enums ===
 
 public enum RuntimeType {
-    MI,
     BI
 };
 
@@ -90,8 +91,10 @@ public type Node record {
 // === Runtime Communication Types ===
 
 public type Heartbeat record {|
-    string runtime;
+    string runtimeId;
+    string runtime?;
     RuntimeType runtimeType;
+    string heartbeatVersion = HEARTBEAT_VERSION;
     RuntimeStatus status;
     string environment = environment;
     string project;
@@ -105,8 +108,10 @@ public type Heartbeat record {|
 |};
 
 public type HeartbeatForHash record {|
-    string runtime;
+    string runtimeId;
+    string runtime?;
     RuntimeType runtimeType;
+    string heartbeatVersion = HEARTBEAT_VERSION;
     RuntimeStatus status;
     string environment;
     string project;
@@ -118,7 +123,8 @@ public type HeartbeatForHash record {|
 |};
 
 public type DeltaHeartbeat record {|
-    string runtime;
+    string runtimeId;
+    string heartbeatVersion = HEARTBEAT_VERSION;
     string runtimeHash;
     time:Utc timestamp;
 |};

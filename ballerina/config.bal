@@ -22,7 +22,7 @@ configurable string jwtIssuer = "icp-runtime-jwt-issuer";
 configurable string|string[] jwtAudience = "icp-server";
 configurable decimal jwtExpiryTimeSeconds = 3600;
 
-configurable string runtime = "";
+configurable string? runtime = "";
 configurable string environment = "Dev";
 configurable string integration = "default_integration";
 configurable string project = "default_project";
