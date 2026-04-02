@@ -27,27 +27,12 @@ configurable string runtimeIdFile = ".icp_runtime_id";
 final string currentRuntimeId = check initializeRuntimeId();
 var _ = check observe:addTag("icp.runtimeId", currentRuntimeId);
 
-// Initialize runtime ID - check config first, then file, then generate random UUID
+// Initialize runtime ID - check if file exists, otherwise generate UUIDv4
 isolated function initializeRuntimeId() returns string|error {
     // Use current working directory for the runtime ID file
     string runtimeIdPath = runtimeIdFile;
 
-    // First priority: check if configured runtime ID is provided
-    if runtime.trim().length() > 0 {
-        string baseId = runtime.trim();
-        string newRuntimeId = string `${baseId}`;
-
-        // Ensure it doesn't exceed 100 characters
-        if newRuntimeId.length() > 100 {
-            newRuntimeId = newRuntimeId.substring(0, 100);
-        }
-
-        // Persist the configured ID
-        check io:fileWriteString(runtimeIdPath, newRuntimeId);
-        return newRuntimeId;
-    }
-
-    // Second priority: check if file exists and read the persisted runtime ID
+    // Check if file exists and read the persisted runtime ID
     if check file:test(runtimeIdPath, file:EXISTS) {
         string existingId = check io:fileReadString(runtimeIdPath);
         // Validate it's not empty and within valid length (max 100 chars)
@@ -57,7 +42,7 @@ isolated function initializeRuntimeId() returns string|error {
         }
     }
 
-    // Last resort: generate a random UUID (no MAC/timestamp exposure)
+    // Generate a random UUIDv4
     string newRuntimeId = uuid:createRandomUuid().toString();
 
     // Ensure it doesn't exceed 100 characters
@@ -72,7 +57,8 @@ isolated function initializeRuntimeId() returns string|error {
 isolated function getHeartbeat() returns Heartbeat|error {
     // First create heartbeat data without hash and timestamp
     HeartbeatForHash heartbeatForHash = {
-        runtime: currentRuntimeId,
+        runtimeId: currentRuntimeId,
+        runtime: runtime,
         runtimeType: BI,
         status: RUNNING,
         nodeInfo: check getBallerinaNode(),
@@ -93,6 +79,7 @@ isolated function getHeartbeat() returns Heartbeat|error {
 
     // Create full heartbeat with hash and timestamp
     Heartbeat heartbeat = {
+        runtimeId: heartbeatForHash.runtimeId,
         runtime: heartbeatForHash.runtime,
         runtimeType: heartbeatForHash.runtimeType,
         status: heartbeatForHash.status,
@@ -138,7 +125,7 @@ isolated function setLoggerLevel(string loggerId, log:Level logLevel) returns er
 
 isolated function getDeltaHeartbeat(Heartbeat heartbeat) returns DeltaHeartbeat|error {
     DeltaHeartbeat deltaHeartbeat = {
-        runtime: heartbeat.runtime,
+        runtimeId: heartbeat.runtimeId,
         runtimeHash: heartbeat.runtimeHash,
         timestamp: time:utcNow()
     };
