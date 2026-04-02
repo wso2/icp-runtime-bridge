@@ -323,7 +323,7 @@ dependencies = [
 [[package]]
 org = "wso2"
 name = "artifacts_tests"
-version = "0.1.2"
+version = "0.1.3"
 dependencies = [
 	{org = "ballerina", name = "http"}
 ]
