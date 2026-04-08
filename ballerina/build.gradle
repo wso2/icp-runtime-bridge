@@ -45,7 +45,9 @@ def stripBallerinaExtensionVersion(String extVersion) {
             return extVersion
         }
     } else {
-        return extVersion.replace("${project.ext.snapshotVersion}", "")
+        // Keep the version as-is (including -SNAPSHOT for development)
+        // The release workflow will handle version updates for publishing
+        return extVersion
     }
 }
 

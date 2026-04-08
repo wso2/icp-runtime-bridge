@@ -145,9 +145,14 @@ public class HeartbeatJob {
                             result = error(string `Failed to parse logger level payload: ${loggerPayload.message()}`);
                         } else {
                             log:printInfo(string `Setting log level to ${loggerPayload.logLevel} for logger: ${loggerPayload.componentName}`);
-                            result = setLoggerLevel(loggerPayload.componentName, loggerPayload.logLevel);
+                            string? packageName = loggerPayload.componentPackage;
+                            string trimmedPackage = (packageName is string) ? packageName.trim() : "";
+                            string loggerId = (trimmedPackage.length() > 0)
+                                ? trimmedPackage + ":" + loggerPayload.componentName
+                                : loggerPayload.componentName;
+                            result = setLoggerLevel(loggerId, loggerPayload.logLevel);
                             if result is () {
-                                log:printInfo(string `Successfully set log level for logger: ${loggerPayload.componentName}`);
+                                log:printInfo(string `Successfully set log level for logger : ${loggerPayload.componentName}`);
                                 artifactsChanged = true;
                             }
                         }

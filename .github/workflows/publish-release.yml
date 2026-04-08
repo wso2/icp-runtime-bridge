@@ -115,9 +115,10 @@ jobs:
       
       - name: Update version to release version
         run: |
-          sed -i "s/version=.*/version=$RELEASE_VERSION/" gradle.properties
-          sed -i "s/version = \".*/version = \"$RELEASE_VERSION\"/" ballerina/Ballerina.toml
-          sed -i "s/icp.runtime.bridge-native-.*.jar/icp.runtime.bridge-native-$RELEASE_VERSION.jar/" ballerina/Ballerina.toml
+          # Remove -SNAPSHOT from all version references for release
+          sed -i "s/version=.*-SNAPSHOT/version=$RELEASE_VERSION/" gradle.properties
+          sed -i "s/version = \".*-SNAPSHOT\"/version = \"$RELEASE_VERSION\"/" ballerina/Ballerina.toml
+          sed -i "s/icp.runtime.bridge-native-.*-SNAPSHOT.jar/icp.runtime.bridge-native-$RELEASE_VERSION.jar/" ballerina/Ballerina.toml
           git add gradle.properties ballerina/Ballerina.toml
           if ! git diff --cached --quiet; then
             git commit -m "[Release] Release version $RELEASE_VERSION"
@@ -182,6 +183,7 @@ jobs:
       
       - name: Update version to next development version
         run: |
+          # Update all version references to next SNAPSHOT version
           sed -i "s/version=.*/version=$NEXT_VERSION/" gradle.properties
           sed -i "s/version = \".*/version = \"$NEXT_VERSION\"/" ballerina/Ballerina.toml
           sed -i "s/icp.runtime.bridge-native-.*.jar/icp.runtime.bridge-native-$NEXT_VERSION.jar/" ballerina/Ballerina.toml
