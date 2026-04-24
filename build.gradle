@@ -35,6 +35,8 @@ allprojects {
 
     repositories {
         mavenLocal()
+        mavenCentral()
+        gradlePluginPortal()
         maven {
             url = 'https://maven.wso2.org/nexus/content/repositories/releases/'
         }
