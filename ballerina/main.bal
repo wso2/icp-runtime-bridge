@@ -26,6 +26,7 @@ function init() returns error? {
     // Initialize ICP client (JWT is generated internally from config)
     IcpClient icpClient = check new (config);
     log:printInfo("ICP agent initialized with server URL: " + config.serverUrl);
+    _ = check icpClient->sendHeartbeat(check getHeartbeat());
 
     worker w1 returns error? {
         check startICPAgent(icpClient, config);
