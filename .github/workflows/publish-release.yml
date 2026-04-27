@@ -17,6 +17,8 @@ jobs:
       contents: write
       pull-requests: write
     env:
+      packageUser: ${{ github.actor }}
+      packagePAT: ${{ secrets.GITHUB_TOKEN }}
       DOCKER_DEFAULT_PLATFORM: linux/amd64
     
     steps:
