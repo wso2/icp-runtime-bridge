@@ -37,8 +37,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.ballerina.lib.wso2.icp.Constants.BALLERINA;
-import static io.ballerina.lib.wso2.icp.Constants.LISTENER;
 import static io.ballerina.lib.wso2.icp.Constants.PACKAGE_NAME;
 import static io.ballerina.lib.wso2.icp.Constants.PACKAGE_ORG;
 import static io.ballerina.lib.wso2.icp.Constants.PACKAGE_VERSION;
@@ -70,7 +68,7 @@ public class Artifacts {
 
     public static Object getArtifacts(Environment env, BString resourceType, BTypedesc typedesc) {
         currentModule = env.getCurrentModule();
-        artifacts = filterHttpArtifacts(env.getRepository().getArtifacts());
+        artifacts = filterArtifacts(env.getRepository().getArtifacts());
         populateArtifactNamesMap();
         Type artifactType = TypeUtils.getImpliedType(typedesc.getDescribingType());
         List<BListInitialValueEntry> artifactEntries;
@@ -83,8 +81,8 @@ public class Artifacts {
         return ValueCreator.createArrayValue(arrayType, artifactEntries.toArray(BListInitialValueEntry[]::new));
     }
 
-    private static List<Artifact> filterHttpArtifacts(List<Artifact> artifacts) {
-        List<Artifact> httpArtifacts = new ArrayList<>();
+    private static List<Artifact> filterArtifacts(List<Artifact> artifacts) {
+        List<Artifact> result = new ArrayList<>();
         for (Artifact artifact : artifacts) {
             BObject serviceObj = (BObject) artifact.getDetail(SERVICE);
             if (serviceObj == null || Utils.isicpService(serviceObj, currentModule)) {
@@ -95,19 +93,13 @@ public class Artifacts {
                 continue;
             }
             for (BObject listener : listeners) {
-                if (listener == null) {
-                    continue;
-                }
-                Type listenerType = TypeUtils.getImpliedType(listener.getOriginalType());
-                Module typePackage = listenerType.getPackage();
-                if (listenerType.getName().equals(LISTENER) && typePackage.getOrg().equals(BALLERINA)
-                        && typePackage.getName().equals("http")) {
-                    httpArtifacts.add(artifact);
+                if (listener != null) {
+                    result.add(artifact);
                     break;
                 }
             }
         }
-        return httpArtifacts;
+        return result;
     }
 
     private static void populateArtifactNamesMap() {
@@ -137,7 +129,7 @@ public class Artifacts {
 
     public static Object getDetailedArtifact(Environment env, BString resourceType, BString name) {
         if (artifacts == null) {
-            artifacts = filterHttpArtifacts(env.getRepository().getArtifacts());
+            artifacts = filterArtifacts(env.getRepository().getArtifacts());
             currentModule = env.getCurrentModule();
             populateArtifactNamesMap();
         }
