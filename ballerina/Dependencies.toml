@@ -329,7 +329,7 @@ modules = [
 [[package]]
 org = "wso2"
 name = "icp.runtime.bridge"
-version = "0.1.8-SNAPSHOT"
+version = "0.1.8"
 dependencies = [
 	{org = "ballerina", name = "crypto"},
 	{org = "ballerina", name = "file"},
