@@ -21,6 +21,7 @@ import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.repository.Artifact;
 import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.api.utils.StringUtils;
+import io.ballerina.runtime.api.utils.TypeUtils;
 import io.ballerina.runtime.api.values.BListInitialValueEntry;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
@@ -33,6 +34,7 @@ import java.util.Set;
 
 import static io.ballerina.lib.wso2.icp.Artifacts.LISTENER_NAMES_MAP;
 import static io.ballerina.lib.wso2.icp.Artifacts.LISTENER_STATES_MAP;
+import static io.ballerina.lib.wso2.icp.Constants.BALLERINA;
 import static io.ballerina.lib.wso2.icp.Constants.DISABLED;
 import static io.ballerina.lib.wso2.icp.Constants.ENABLED;
 import static io.ballerina.lib.wso2.icp.Constants.HOST;
@@ -85,23 +87,32 @@ public class Listeners {
     }
 
     public BMap<BString, Object> getDetailedListener(BObject listener, Module currentModule) {
-        Type originalType = listener.getOriginalType();
+        Type listenerType = TypeUtils.getImpliedType(listener.getOriginalType());
+        io.ballerina.runtime.api.Module typePackage = listenerType.getPackage();
+
         BMap<BString, Object> listenerRecord = ValueCreator.createMapValue();
         listenerRecord.put(StringUtils.fromString(NAME), StringUtils.fromString(LISTENER_NAMES_MAP.get(listener)));
-        listenerRecord.put(StringUtils.fromString(PROTOCOL), getListenerProtocol(listener));
-        listenerRecord.put(StringUtils.fromString(PORT), listener.get(StringUtils.fromString(PORT)));
         listenerRecord.put(StringUtils.fromString(PACKAGE),
-                StringUtils.fromString(originalType.getPackage().toString()));
-        BMap<BString, Object> config = (BMap<BString, Object>) listener.get(StringUtils.fromString(INFERRED_CONFIG));
-        listenerRecord.put(StringUtils.fromString(HTTP_VERSION),
-                StringUtils.fromString(config.get(StringUtils.fromString(HTTP_VERSION)).toString()));
-        listenerRecord.put(StringUtils.fromString(HOST),
-                StringUtils.fromString(config.get(StringUtils.fromString(HOST)).toString()));
-        listenerRecord.put(StringUtils.fromString(TIMEOUT),
-                config.get(StringUtils.fromString(TIMEOUT)));
-        listenerRecord.put(StringUtils.fromString(REQUEST_LIMITS), getRequestLimit(config, currentModule));
+                StringUtils.fromString(listener.getOriginalType().getPackage().toString()));
         listenerRecord.put(StringUtils.fromString(STATE),
                 StringUtils.fromString(LISTENER_STATES_MAP.getOrDefault(listener, true) ? ENABLED : DISABLED));
+
+        if (BALLERINA.equals(typePackage.getOrg()) && "http".equals(typePackage.getName())) {
+            listenerRecord.put(StringUtils.fromString(PROTOCOL), getListenerProtocol(listener));
+            listenerRecord.put(StringUtils.fromString(PORT), listener.get(StringUtils.fromString(PORT)));
+            BMap<BString, Object> config =
+                    (BMap<BString, Object>) listener.get(StringUtils.fromString(INFERRED_CONFIG));
+            listenerRecord.put(StringUtils.fromString(HTTP_VERSION),
+                    StringUtils.fromString(config.get(StringUtils.fromString(HTTP_VERSION)).toString()));
+            listenerRecord.put(StringUtils.fromString(HOST),
+                    StringUtils.fromString(config.get(StringUtils.fromString(HOST)).toString()));
+            listenerRecord.put(StringUtils.fromString(TIMEOUT), config.get(StringUtils.fromString(TIMEOUT)));
+            listenerRecord.put(StringUtils.fromString(REQUEST_LIMITS), getRequestLimit(config, currentModule));
+        } else {
+            listenerRecord.put(StringUtils.fromString(PROTOCOL),
+                    StringUtils.fromString(typePackage.getName()));
+        }
+
         return ValueCreator.createReadonlyRecordValue(currentModule, LISTENER_DETAIL, listenerRecord);
     }
 
