@@ -129,8 +129,8 @@ public class Artifacts {
 
     public static Object getDetailedArtifact(Environment env, BString resourceType, BString name) {
         if (artifacts == null) {
-            artifacts = filterArtifacts(env.getRepository().getArtifacts());
             currentModule = env.getCurrentModule();
+            artifacts = filterArtifacts(env.getRepository().getArtifacts());
             populateArtifactNamesMap();
         }
         String value = name.getValue();
