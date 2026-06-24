@@ -127,4 +127,25 @@ public class Listeners {
         return StringUtils.fromString(secureSocket == null ? HTTP : HTTPS);
     }
 
+    // Returns the configured host of the first enabled HTTP listener in the runtime.
+    // The Ballerina layer combines this with the workflow management port to build the
+    // callback URL. Returns null when no HTTP listener is available.
+    public BString getCallbackHost(Module currentModule) {
+        Set<BObject> listeners = getNonDuplicatedListeners(Artifacts.artifacts, currentModule);
+        for (BObject listener : listeners) {
+            if (!Artifacts.LISTENER_STATES_MAP.getOrDefault(listener, true)) {
+                continue;
+            }
+            Type listenerType = TypeUtils.getImpliedType(listener.getOriginalType());
+            Module typePackage = listenerType.getPackage();
+            if (!(BALLERINA.equals(typePackage.getOrg()) && "http".equals(typePackage.getName()))) {
+                continue;
+            }
+            BMap<BString, Object> config =
+                    (BMap<BString, Object>) listener.get(StringUtils.fromString(INFERRED_CONFIG));
+            return StringUtils.fromString(config.get(StringUtils.fromString(HOST)).toString());
+        }
+        return null;
+    }
+
 }

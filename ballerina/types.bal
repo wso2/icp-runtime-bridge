@@ -93,6 +93,7 @@ public type Node record {
 public type Heartbeat record {|
     string runtimeId;
     string runtime?;
+    string workflowCallbackUrl?;
     RuntimeType runtimeType;
     string heartbeatVersion = HEARTBEAT_VERSION;
     RuntimeStatus status;
@@ -110,6 +111,7 @@ public type Heartbeat record {|
 public type HeartbeatForHash record {|
     string runtimeId;
     string runtime?;
+    string workflowCallbackUrl?;
     RuntimeType runtimeType;
     string heartbeatVersion = HEARTBEAT_VERSION;
     RuntimeStatus status;
