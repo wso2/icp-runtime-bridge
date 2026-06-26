@@ -88,6 +88,11 @@ public class Artifacts {
             if (serviceObj == null || Utils.isicpService(serviceObj, currentModule)) {
                 continue;
             }
+            // Skip internal adapter services created by stdlib listeners (e.g. graphql's internal HTTP adapter).
+            // These always come from ballerina/* or ballerinax/* packages, never from the user's module.
+            if (Utils.isInternalAdapterService(serviceObj)) {
+                continue;
+            }
             List<BObject> listeners = (List<BObject>) artifact.getDetail(Constants.LISTENERS);
             if (listeners == null) {
                 continue;

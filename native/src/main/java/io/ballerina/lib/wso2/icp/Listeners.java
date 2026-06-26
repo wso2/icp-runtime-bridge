@@ -111,6 +111,15 @@ public class Listeners {
         } else {
             listenerRecord.put(StringUtils.fromString(PROTOCOL),
                     StringUtils.fromString(typePackage.getName()));
+            // Non-HTTP listeners such as graphql:Listener expose a 'port' field directly.
+            try {
+                Object port = listener.get(StringUtils.fromString(PORT));
+                if (port != null) {
+                    listenerRecord.put(StringUtils.fromString(PORT), port);
+                }
+            } catch (RuntimeException ignored) {
+                // Listener does not expose a 'port' field — port will be absent from the detail.
+            }
         }
 
         return ValueCreator.createReadonlyRecordValue(currentModule, LISTENER_DETAIL, listenerRecord);

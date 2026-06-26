@@ -71,6 +71,21 @@ public class Utils {
         return module != null && module.equals(currentModule);
     }
 
+    /**
+     * Returns true when a service object is an internal adapter created by a stdlib listener
+     * (e.g. the HTTP service wrapper that graphql:Listener registers internally).
+     * Such services come from ballerina/* or ballerinax/* packages and are not user-defined.
+     */
+    public static boolean isInternalAdapterService(BObject serviceObj) {
+        Type originalType = serviceObj.getOriginalType();
+        Module module = originalType.getPackage();
+        if (module == null) {
+            return false;
+        }
+        String org = module.getOrg();
+        return Constants.BALLERINA.equals(org) || "ballerinax".equals(org);
+    }
+
     public static BMap<BString, Object> getArtifact(String name, Module module) {
         BMap<BString, Object> artifact = ValueCreator.createMapValue();
         artifact.put(StringUtils.fromString(NAME), StringUtils.fromString(name));
