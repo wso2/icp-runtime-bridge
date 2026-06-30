@@ -131,15 +131,21 @@ public class Artifacts {
                 }
             }
         }
-        // Phase 2: exclude listeners that are purely internal implementations of another listener
-        // (e.g. the http:Listener held as a field inside a graphql:Listener). A wrapped listener
-        // is still kept when it also has a direct user-facing artifact reference — i.e. at least
-        // one service that uses it is NOT also a service of the wrapping listener.
+        // Phase 2: derive the current public listener set, excluding purely internal
+        // implementations (wrapped listeners with no independent user-facing artifact).
+        Set<BObject> currentPublic = new LinkedHashSet<>();
         for (BObject listener : allCandidates) {
             if (Utils.isWrappedByAnotherListener(listener, allCandidates)
                     && !hasDirectArtifactReference(listener, allCandidates)) {
                 continue;
             }
+            currentPublic.add(listener);
+        }
+        // Prune stale entries from previous refreshes that are no longer in the current set.
+        LISTENER_NAMES_MAP.keySet().retainAll(currentPublic);
+        LISTENER_STATES_MAP.keySet().retainAll(currentPublic);
+        // Add names and default states only for listeners not yet tracked.
+        for (BObject listener : currentPublic) {
             if (!LISTENER_NAMES_MAP.containsKey(listener)) {
                 LISTENER_NAMES_MAP.put(listener, LISTENER_PREFIX + listenerCounter++);
                 LISTENER_STATES_MAP.put(listener, true);
