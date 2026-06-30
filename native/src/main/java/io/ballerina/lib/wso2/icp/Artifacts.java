@@ -34,6 +34,7 @@ import io.ballerina.runtime.api.values.BTypedesc;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -130,11 +131,13 @@ public class Artifacts {
                 }
             }
         }
-        // Phase 2: exclude listeners that are internal implementations of another listener
-        // (e.g. the http:Listener held as a field inside a graphql:Listener). Only user-facing
-        // listeners get names and appear in the public list.
+        // Phase 2: exclude listeners that are purely internal implementations of another listener
+        // (e.g. the http:Listener held as a field inside a graphql:Listener). A wrapped listener
+        // is still kept when it also has a direct user-facing artifact reference — i.e. at least
+        // one service that uses it is NOT also a service of the wrapping listener.
         for (BObject listener : allCandidates) {
-            if (Utils.isWrappedByAnotherListener(listener, allCandidates)) {
+            if (Utils.isWrappedByAnotherListener(listener, allCandidates)
+                    && !hasDirectArtifactReference(listener, allCandidates)) {
                 continue;
             }
             if (!LISTENER_NAMES_MAP.containsKey(listener)) {
@@ -142,6 +145,45 @@ public class Artifacts {
                 LISTENER_STATES_MAP.put(listener, true);
             }
         }
+    }
+
+    /**
+     * Returns true when {@code listener} appears in at least one filtered artifact whose
+     * service is not also registered under a wrapping listener. This distinguishes a
+     * listener that is purely an internal implementation detail (all its services belong
+     * to the wrapper too) from one that is directly declared by the user for independent
+     * services and must remain visible.
+     */
+    private static boolean hasDirectArtifactReference(BObject listener, Set<BObject> allCandidates) {
+        // Collect every service that is also registered under a listener that wraps this one.
+        Set<BObject> wrapperServices = new HashSet<>();
+        for (BObject wrapper : allCandidates) {
+            if (wrapper == listener || !Utils.isFieldOf(listener, wrapper)) {
+                continue;
+            }
+            for (Artifact artifact : artifacts) {
+                List<BObject> ls = (List<BObject>) artifact.getDetail(Constants.LISTENERS);
+                if (ls != null && ls.contains(wrapper)) {
+                    BObject svc = (BObject) artifact.getDetail(SERVICE);
+                    if (svc != null) {
+                        wrapperServices.add(svc);
+                    }
+                }
+            }
+        }
+        // If any artifact uses this listener for a service not covered by the wrapper,
+        // the listener has an independent reference and must not be hidden.
+        for (Artifact artifact : artifacts) {
+            List<BObject> ls = (List<BObject>) artifact.getDetail(Constants.LISTENERS);
+            if (ls == null || !ls.contains(listener)) {
+                continue;
+            }
+            BObject svc = (BObject) artifact.getDetail(SERVICE);
+            if (svc != null && !wrapperServices.contains(svc)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static Object getDetailedArtifact(Environment env, BString resourceType, BString name) {

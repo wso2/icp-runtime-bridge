@@ -91,6 +91,28 @@ public class Utils {
     }
 
     /**
+     * Returns true when {@code candidate} is stored as a direct object field of
+     * {@code container}. This is the primitive used to detect wrapper relationships
+     * between listeners (e.g. the http:Listener field inside a graphql:Listener).
+     */
+    public static boolean isFieldOf(BObject candidate, BObject container) {
+        Type containerType = TypeUtils.getImpliedType(container.getOriginalType());
+        if (!(containerType instanceof ObjectType objectType)) {
+            return false;
+        }
+        for (String fieldName : objectType.getFields().keySet()) {
+            try {
+                if (candidate == container.get(StringUtils.fromString(fieldName))) {
+                    return true;
+                }
+            } catch (RuntimeException ignored) {
+                // Field not accessible or not a matching type — continue.
+            }
+        }
+        return false;
+    }
+
+    /**
      * Returns true when {@code candidate} is stored as an object field of any other
      * listener in {@code allListeners}. This identifies listeners that are internal
      * implementations of a higher-level listener (e.g. the http:Listener inside a
@@ -98,21 +120,8 @@ public class Utils {
      */
     public static boolean isWrappedByAnotherListener(BObject candidate, Set<BObject> allListeners) {
         for (BObject other : allListeners) {
-            if (other == candidate) {
-                continue;
-            }
-            Type otherType = TypeUtils.getImpliedType(other.getOriginalType());
-            if (!(otherType instanceof ObjectType objectType)) {
-                continue;
-            }
-            for (String fieldName : objectType.getFields().keySet()) {
-                try {
-                    if (candidate == other.get(StringUtils.fromString(fieldName))) {
-                        return true;
-                    }
-                } catch (RuntimeException ignored) {
-                    // Field not accessible or wrong type — continue.
-                }
+            if (other != candidate && isFieldOf(candidate, other)) {
+                return true;
             }
         }
         return false;
