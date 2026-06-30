@@ -74,15 +74,12 @@ public class Listeners {
     }
 
     private Set<BObject> getNonDuplicatedListeners(List<Artifact> artifacts, Module currentModule) {
+        // LISTENER_NAMES_MAP is already populated by populateArtifactNamesMap() with only
+        // user-facing listeners (internal wrapped listeners are excluded there). Derive
+        // the list from the map so the two are always consistent.
         Set<BObject> listeners = new LinkedHashSet<>();
-        for (Artifact artifact : artifacts) {
-            if (Utils.isicpService((BObject) artifact.getDetail(SERVICE), currentModule)) {
-                continue;
-            }
-            Object listenersDetail = artifact.getDetail(LISTENERS);
-            if (listenersDetail != null && listenersDetail instanceof List) {
-                listeners.addAll((List<BObject>) listenersDetail);
-            }
+        for (Object key : LISTENER_NAMES_MAP.keySet()) {
+            listeners.add((BObject) key);
         }
         return listeners;
     }
@@ -112,13 +109,11 @@ public class Listeners {
         } else {
             listenerRecord.put(StringUtils.fromString(PROTOCOL),
                     StringUtils.fromString(typePackage.getName()));
-            // For non-HTTP listeners that declare a 'port' field (e.g. graphql:Listener),
-            // verify via the type descriptor before reading to avoid catching unrelated failures.
-            if (listenerType instanceof ObjectType objectType && objectType.getFields().containsKey(PORT)) {
-                Object port = listener.get(StringUtils.fromString(PORT));
-                if (port != null) {
-                    listenerRecord.put(StringUtils.fromString(PORT), port);
-                }
+            // Non-HTTP listeners (e.g. graphql:Listener) typically do not declare a 'port'
+            // field directly; the port is stored inside an inner http:Listener field.
+            // Try direct field first, then fall back to scanning for a nested http:Listener.
+            if (listenerType instanceof ObjectType objectType) {
+                extractPort(listener, objectType, listenerRecord);
             }
         }
 
@@ -134,6 +129,44 @@ public class Listeners {
         BMap<BString, Object> config = (BMap<BString, Object>) listener.get(StringUtils.fromString(INFERRED_CONFIG));
         Object secureSocket = config.get(StringUtils.fromString(SECURE_SOCKET));
         return StringUtils.fromString(secureSocket == null ? HTTP : HTTPS);
+    }
+
+    /**
+     * Attempts to populate the PORT entry in {@code record} for a non-HTTP listener.
+     * Checks for a direct 'port' field first; if absent, scans object fields for a nested
+     * http:Listener and reads its port (covers graphql:Listener which stores the port in
+     * an internal httpListener field).
+     */
+    private static void extractPort(BObject listener, ObjectType objectType,
+                                    BMap<BString, Object> record) {
+        if (objectType.getFields().containsKey(PORT)) {
+            Object port = listener.get(StringUtils.fromString(PORT));
+            if (port != null) {
+                record.put(StringUtils.fromString(PORT), port);
+            }
+            return;
+        }
+        for (String fieldName : objectType.getFields().keySet()) {
+            try {
+                Object fv = listener.get(StringUtils.fromString(fieldName));
+                if (!(fv instanceof BObject nested)) {
+                    continue;
+                }
+                io.ballerina.runtime.api.Module nestedPkg =
+                        TypeUtils.getImpliedType(nested.getOriginalType()).getPackage();
+                if (nestedPkg == null || !BALLERINA.equals(nestedPkg.getOrg())
+                        || !"http".equals(nestedPkg.getName())) {
+                    continue;
+                }
+                Object port = nested.get(StringUtils.fromString(PORT));
+                if (port != null) {
+                    record.put(StringUtils.fromString(PORT), port);
+                    return;
+                }
+            } catch (RuntimeException ignored) {
+                // Field not accessible or not a BObject — skip.
+            }
+        }
     }
 
 }

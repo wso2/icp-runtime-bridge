@@ -34,8 +34,10 @@ import io.ballerina.runtime.api.values.BTypedesc;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.ballerina.lib.wso2.icp.Constants.PACKAGE_NAME;
 import static io.ballerina.lib.wso2.icp.Constants.PACKAGE_ORG;
@@ -108,6 +110,8 @@ public class Artifacts {
     }
 
     private static void populateArtifactNamesMap() {
+        // Phase 1: assign service names and collect every listener referenced in the filtered artifacts.
+        Set<BObject> allCandidates = new LinkedHashSet<>();
         for (Artifact artifact : artifacts) {
             BObject serviceObj = (BObject) artifact.getDetail(SERVICE);
             if (serviceObj == null || Utils.isicpService(serviceObj, currentModule)) {
@@ -121,13 +125,21 @@ public class Artifacts {
                 continue;
             }
             for (BObject listener : listeners) {
-                if (listener == null) {
-                    continue;
+                if (listener != null) {
+                    allCandidates.add(listener);
                 }
-                if (!LISTENER_NAMES_MAP.containsKey(listener)) {
-                    LISTENER_NAMES_MAP.put(listener, LISTENER_PREFIX + listenerCounter++);
-                    LISTENER_STATES_MAP.put(listener, true); // Default to enabled
-                }
+            }
+        }
+        // Phase 2: exclude listeners that are internal implementations of another listener
+        // (e.g. the http:Listener held as a field inside a graphql:Listener). Only user-facing
+        // listeners get names and appear in the public list.
+        for (BObject listener : allCandidates) {
+            if (Utils.isWrappedByAnotherListener(listener, allCandidates)) {
+                continue;
+            }
+            if (!LISTENER_NAMES_MAP.containsKey(listener)) {
+                LISTENER_NAMES_MAP.put(listener, LISTENER_PREFIX + listenerCounter++);
+                LISTENER_STATES_MAP.put(listener, true);
             }
         }
     }

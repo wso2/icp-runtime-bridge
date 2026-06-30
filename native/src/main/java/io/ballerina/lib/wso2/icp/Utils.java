@@ -20,11 +20,15 @@ import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.Module;
 import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.repository.Node;
+import io.ballerina.runtime.api.types.ObjectType;
 import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.api.utils.StringUtils;
+import io.ballerina.runtime.api.utils.TypeUtils;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
+
+import java.util.Set;
 
 import static io.ballerina.lib.wso2.icp.Constants.ARTIFACT;
 import static io.ballerina.lib.wso2.icp.Constants.BALLERINA_HOME;
@@ -84,6 +88,34 @@ public class Utils {
         }
         String org = module.getOrg();
         return Constants.BALLERINA.equals(org) || "ballerinax".equals(org);
+    }
+
+    /**
+     * Returns true when {@code candidate} is stored as an object field of any other
+     * listener in {@code allListeners}. This identifies listeners that are internal
+     * implementations of a higher-level listener (e.g. the http:Listener inside a
+     * graphql:Listener) so they can be excluded from the user-visible list.
+     */
+    public static boolean isWrappedByAnotherListener(BObject candidate, Set<BObject> allListeners) {
+        for (BObject other : allListeners) {
+            if (other == candidate) {
+                continue;
+            }
+            Type otherType = TypeUtils.getImpliedType(other.getOriginalType());
+            if (!(otherType instanceof ObjectType objectType)) {
+                continue;
+            }
+            for (String fieldName : objectType.getFields().keySet()) {
+                try {
+                    if (candidate == other.get(StringUtils.fromString(fieldName))) {
+                        return true;
+                    }
+                } catch (RuntimeException ignored) {
+                    // Field not accessible or wrong type — continue.
+                }
+            }
+        }
+        return false;
     }
 
     public static BMap<BString, Object> getArtifact(String name, Module module) {
