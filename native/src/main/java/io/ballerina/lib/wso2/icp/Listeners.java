@@ -19,6 +19,7 @@ package io.ballerina.lib.wso2.icp;
 import io.ballerina.runtime.api.Module;
 import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.repository.Artifact;
+import io.ballerina.runtime.api.types.ObjectType;
 import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.api.utils.StringUtils;
 import io.ballerina.runtime.api.utils.TypeUtils;
@@ -111,14 +112,13 @@ public class Listeners {
         } else {
             listenerRecord.put(StringUtils.fromString(PROTOCOL),
                     StringUtils.fromString(typePackage.getName()));
-            // Non-HTTP listeners such as graphql:Listener expose a 'port' field directly.
-            try {
+            // For non-HTTP listeners that declare a 'port' field (e.g. graphql:Listener),
+            // verify via the type descriptor before reading to avoid catching unrelated failures.
+            if (listenerType instanceof ObjectType objectType && objectType.getFields().containsKey(PORT)) {
                 Object port = listener.get(StringUtils.fromString(PORT));
                 if (port != null) {
                     listenerRecord.put(StringUtils.fromString(PORT), port);
                 }
-            } catch (RuntimeException ignored) {
-                // Listener does not expose a 'port' field — port will be absent from the detail.
             }
         }
 
