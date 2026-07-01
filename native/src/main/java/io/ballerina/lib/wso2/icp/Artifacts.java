@@ -34,8 +34,11 @@ import io.ballerina.runtime.api.values.BTypedesc;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static io.ballerina.lib.wso2.icp.Constants.PACKAGE_NAME;
 import static io.ballerina.lib.wso2.icp.Constants.PACKAGE_ORG;
@@ -88,6 +91,11 @@ public class Artifacts {
             if (serviceObj == null || Utils.isicpService(serviceObj, currentModule)) {
                 continue;
             }
+            // Skip internal adapter services created by stdlib listeners (e.g. graphql's internal HTTP adapter).
+            // These always come from ballerina/* or ballerinax/* packages, never from the user's module.
+            if (Utils.isInternalAdapterService(serviceObj)) {
+                continue;
+            }
             List<BObject> listeners = (List<BObject>) artifact.getDetail(Constants.LISTENERS);
             if (listeners == null) {
                 continue;
@@ -103,6 +111,8 @@ public class Artifacts {
     }
 
     private static void populateArtifactNamesMap() {
+        // Phase 1: assign service names and collect every listener referenced in the filtered artifacts.
+        Set<BObject> allCandidates = new LinkedHashSet<>();
         for (Artifact artifact : artifacts) {
             BObject serviceObj = (BObject) artifact.getDetail(SERVICE);
             if (serviceObj == null || Utils.isicpService(serviceObj, currentModule)) {
@@ -116,15 +126,70 @@ public class Artifacts {
                 continue;
             }
             for (BObject listener : listeners) {
-                if (listener == null) {
-                    continue;
-                }
-                if (!LISTENER_NAMES_MAP.containsKey(listener)) {
-                    LISTENER_NAMES_MAP.put(listener, LISTENER_PREFIX + listenerCounter++);
-                    LISTENER_STATES_MAP.put(listener, true); // Default to enabled
+                if (listener != null) {
+                    allCandidates.add(listener);
                 }
             }
         }
+        // Phase 2: derive the current public listener set, excluding purely internal
+        // implementations (wrapped listeners with no independent user-facing artifact).
+        Set<BObject> currentPublic = new LinkedHashSet<>();
+        for (BObject listener : allCandidates) {
+            if (Utils.isWrappedByAnotherListener(listener, allCandidates)
+                    && !hasDirectArtifactReference(listener, allCandidates)) {
+                continue;
+            }
+            currentPublic.add(listener);
+        }
+        // Prune stale entries from previous refreshes that are no longer in the current set.
+        LISTENER_NAMES_MAP.keySet().retainAll(currentPublic);
+        LISTENER_STATES_MAP.keySet().retainAll(currentPublic);
+        // Add names and default states only for listeners not yet tracked.
+        for (BObject listener : currentPublic) {
+            if (!LISTENER_NAMES_MAP.containsKey(listener)) {
+                LISTENER_NAMES_MAP.put(listener, LISTENER_PREFIX + listenerCounter++);
+                LISTENER_STATES_MAP.put(listener, true);
+            }
+        }
+    }
+
+    /**
+     * Returns true when {@code listener} appears in at least one filtered artifact whose
+     * service is not also registered under a wrapping listener. This distinguishes a
+     * listener that is purely an internal implementation detail (all its services belong
+     * to the wrapper too) from one that is directly declared by the user for independent
+     * services and must remain visible.
+     */
+    private static boolean hasDirectArtifactReference(BObject listener, Set<BObject> allCandidates) {
+        // Collect every service that is also registered under a listener that wraps this one.
+        Set<BObject> wrapperServices = new HashSet<>();
+        for (BObject wrapper : allCandidates) {
+            if (wrapper == listener || !Utils.isFieldOf(listener, wrapper)) {
+                continue;
+            }
+            for (Artifact artifact : artifacts) {
+                List<BObject> ls = (List<BObject>) artifact.getDetail(Constants.LISTENERS);
+                if (ls != null && ls.contains(wrapper)) {
+                    BObject svc = (BObject) artifact.getDetail(SERVICE);
+                    if (svc != null) {
+                        wrapperServices.add(svc);
+                    }
+                }
+            }
+        }
+        // If any artifact uses this listener for a service not covered by the wrapper,
+        // the listener has an independent reference and must not be hidden.
+        for (Artifact artifact : artifacts) {
+            List<BObject> ls = (List<BObject>) artifact.getDetail(Constants.LISTENERS);
+            if (ls == null || !ls.contains(listener)) {
+                continue;
+            }
+            BObject svc = (BObject) artifact.getDetail(SERVICE);
+            if (svc != null && !wrapperServices.contains(svc)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static Object getDetailedArtifact(Environment env, BString resourceType, BString name) {
