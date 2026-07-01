@@ -50,32 +50,19 @@ jobs:
       
       - name: Run Tests
         run: ./gradlew test --stacktrace --no-daemon
-      
-      - name: Generate Code Coverage Report
-        run: ./gradlew jacocoTestReport --no-daemon
-
-      - name: Publish Test Results
-        uses: dorny/test-reporter@v1
-        if: always()
-        with:
-          name: Test Results
-          path: '**/build/test-results/**/*.xml'
-          reporter: java-junit
-          fail-on-error: false
 
       - name: Upload Coverage Report
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: '**/build/reports/jacoco/**/*.xml'
+          files: '**/target/report/**/*.xml'
           fail_ci_if_error: false
 
-      - name: Upload Build Artifacts
+      - name: Upload Test Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-reports
+          name: test-reports
           path: |
-            **/build/reports/
-            **/build/test-results/
+            **/target/report/
           retention-days: 7
