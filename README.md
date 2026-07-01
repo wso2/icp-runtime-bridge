@@ -1,7 +1,6 @@
 # [icp-runtime-bridge](https://central.ballerina.io/wso2/icp.runtime.bridge/)
 
 [![Daily build](https://github.com/wso2/icp-runtime-bridge/actions/workflows/daily-build.yml/badge.svg)](https://github.com/wso2/icp-runtime-bridge/actions/workflows/daily-build.yml)
-[![codecov](https://codecov.io/gh/wso2/icp-runtime-bridge/branch/main/graph/badge.svg)](https://codecov.io/gh/wso2/icp-runtime-bridge)
 
 ## Overview
 
