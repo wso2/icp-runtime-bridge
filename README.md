@@ -55,6 +55,45 @@ The bridge operates as an agent within Ballerina runtime environments and consis
 - Native JAR: `native/build/libs/icp.runtime.bridge-native-*.jar`
 - Test reports: `ballerina-tests/build/reports/`
 
+## Testing
+
+Integration tests are in `ballerina-tests/artifacts-tests/`. They run a real Ballerina HTTP service
+and assert on the artifact data returned by the bridge's Java layer.
+
+### Running Tests
+
+```bash
+# Run tests using local Ballerina installation
+./gradlew test -PuseLocalBal
+
+# Run tests using Docker (default — requires Docker daemon)
+./gradlew test
+```
+
+### Test Coverage
+
+The tests exercise the artifact-discovery and filtering logic end-to-end, covering the following scenarios:
+
+| Test | What it verifies |
+|------|-----------------|
+| `testExactlyOneListenerRegistered` | Only the user-defined `http:Listener` appears; no internal wrapped listener leaks through |
+| `testExactlyOneServiceRegistered` | Only the user-defined service appears; no internal stdlib adapter service leaks through |
+| `testListenerReportsCorrectPort` | The listener detail includes the correct port value (covers the nested-field port-extraction path) |
+| `testHttpListenerProtocol` | Plain HTTP listener reports protocol as `"HTTP"` |
+| `testListenerInitialStateIsEnabled` | A freshly registered listener starts in `"enabled"` state |
+| `testServiceBasePath` | The service's declared base path (`/hello`) is preserved in the detail record |
+| `testServiceLinkedToListener` | The service detail references the correct listener by name |
+| `testServiceHasResources` | The service exposes at least one resource method |
+| `testRepeatedQueryDoesNotInflateListenerCount` | Calling `getArtifacts` twice returns a stable count, confirming stale-entry pruning |
+
+### What the Tests Guard Against
+
+These tests were introduced to catch three specific classes of bug in the artifact-discovery layer:
+
+- **Internal listener leak** — `graphql:Listener` and similar stdlib listeners internally create an `http:Listener`. Without the wrapper-detection logic, both the user-visible listener and the internal one appear in the list.
+- **Internal adapter service leak** — Some stdlib listeners register an internal HTTP adapter service. Without the `isInternalAdapterService` filter, this appears alongside the user's service.
+- **Stale map entries** — The static `LISTENER_NAMES_MAP` previously only grew. Without the `retainAll` pruning step, removed listeners would remain in the map across repeated `getArtifacts` calls.
+
 ## Configuration
 
 The runtime bridge can be configured using environment variables or a `Config.toml` file.
