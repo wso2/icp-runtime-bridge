@@ -19,9 +19,7 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
     permissions:
-      checks: write
       contents: read
-      pull-requests: write
     env:
       packageUser: ${{ github.actor }}
       packagePAT: ${{ secrets.GITHUB_TOKEN }}
