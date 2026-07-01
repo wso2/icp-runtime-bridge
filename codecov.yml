@@ -1,0 +1,3 @@
+coverage:
+  ignore:
+    - "wso2/artifacts_tests**"
