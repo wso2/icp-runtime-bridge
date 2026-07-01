@@ -18,6 +18,10 @@ jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-latest
+    permissions:
+      checks: write
+      contents: read
+      pull-requests: write
     env:
       packageUser: ${{ github.actor }}
       packagePAT: ${{ secrets.GITHUB_TOKEN }}
@@ -49,6 +53,15 @@ jobs:
       
       - name: Generate Code Coverage Report
         run: ./gradlew jacocoTestReport --no-daemon
+
+      - name: Publish Test Results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Test Results
+          path: '**/build/test-results/**/*.xml'
+          reporter: java-junit
+          fail-on-error: false
 
       - name: Upload Coverage Report
         uses: codecov/codecov-action@v4
