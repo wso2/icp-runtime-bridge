@@ -69,10 +69,19 @@ public class Utils {
         return "Ballerina " + version + " (Swan Lake Update " + updateVersionText + ")";
     }
 
-    public static boolean isicpService(BObject serviceObj, Module currentModule) {
+    /**
+     * Returns true when a service object belongs to the ICP runtime bridge itself.
+     * Uses a hard-coded org/name check so the filter is correct regardless of which
+     * module calls getArtifacts (including test code that calls the Java layer directly
+     * via @java:Method, where currentModule would otherwise be the test package).
+     */
+    public static boolean isicpService(BObject serviceObj) {
         Type originalType = serviceObj.getOriginalType();
         Module module = originalType.getPackage();
-        return module != null && module.equals(currentModule);
+        if (module == null) {
+            return false;
+        }
+        return "wso2".equals(module.getOrg()) && "icp.runtime.bridge".equals(module.getName());
     }
 
     /**
