@@ -79,6 +79,23 @@ isolated function getDetailedArtifact(string resourceType, string name) returns 
 } external;
 
 // ---------------------------------------------------------------------------
+// Test helpers — encapsulate the fetch-assert-cast pattern used by multiple
+// tests so the precondition and type cast live in exactly one place.
+// ---------------------------------------------------------------------------
+
+function getSingleListenerDetail() returns ListenerDetail|error {
+    Artifact[] listeners = check getArtifacts("listeners", Artifact);
+    test:assertEquals(listeners.length(), 1, "Pre-condition: expected one listener");
+    return <ListenerDetail> check getDetailedArtifact("listeners", listeners[0].name);
+}
+
+function getSingleServiceDetail() returns ServiceDetail|error {
+    Artifact[] services = check getArtifacts("services", Artifact);
+    test:assertEquals(services.length(), 1, "Pre-condition: expected one service");
+    return <ServiceDetail> check getDetailedArtifact("services", services[0].name);
+}
+
+// ---------------------------------------------------------------------------
 // Tests — standard HTTP listener / service scenarios
 // ---------------------------------------------------------------------------
 
@@ -105,9 +122,7 @@ function testExactlyOneServiceRegistered() returns error? {
 // A regression of the port-extraction bug would leave port absent.
 @test:Config {}
 function testListenerReportsCorrectPort() returns error? {
-    Artifact[] listeners = check getArtifacts("listeners", Artifact);
-    test:assertEquals(listeners.length(), 1, "Pre-condition: expected one listener");
-    ListenerDetail detail = <ListenerDetail> check getDetailedArtifact("listeners", listeners[0].name);
+    ListenerDetail detail = check getSingleListenerDetail();
     test:assertEquals(detail.port, testPort,
         "Listener port should match the configured testPort value");
 }
@@ -115,9 +130,7 @@ function testListenerReportsCorrectPort() returns error? {
 // Verifies that a plain HTTP listener reports "HTTP" as its protocol.
 @test:Config {}
 function testHttpListenerProtocol() returns error? {
-    Artifact[] listeners = check getArtifacts("listeners", Artifact);
-    test:assertEquals(listeners.length(), 1, "Pre-condition: expected one listener");
-    ListenerDetail detail = <ListenerDetail> check getDetailedArtifact("listeners", listeners[0].name);
+    ListenerDetail detail = check getSingleListenerDetail();
     test:assertEquals(detail.protocol, "HTTP",
         "Plain HTTP listener should report protocol as 'HTTP'");
 }
@@ -125,9 +138,7 @@ function testHttpListenerProtocol() returns error? {
 // Verifies that a freshly registered listener reports 'enabled' state.
 @test:Config {}
 function testListenerInitialStateIsEnabled() returns error? {
-    Artifact[] listeners = check getArtifacts("listeners", Artifact);
-    test:assertEquals(listeners.length(), 1, "Pre-condition: expected one listener");
-    ListenerDetail detail = <ListenerDetail> check getDetailedArtifact("listeners", listeners[0].name);
+    ListenerDetail detail = check getSingleListenerDetail();
     test:assertEquals(detail.state, "enabled",
         "A newly registered listener should start in enabled state");
 }
@@ -135,9 +146,7 @@ function testListenerInitialStateIsEnabled() returns error? {
 // Verifies the service's declared base path is preserved.
 @test:Config {}
 function testServiceBasePath() returns error? {
-    Artifact[] services = check getArtifacts("services", Artifact);
-    test:assertEquals(services.length(), 1, "Pre-condition: expected one service");
-    ServiceDetail detail = <ServiceDetail> check getDetailedArtifact("services", services[0].name);
+    ServiceDetail detail = check getSingleServiceDetail();
     test:assertEquals(detail.basePath, "/hello",
         "Service base path should match the declared '/hello' path");
 }
@@ -146,9 +155,7 @@ function testServiceBasePath() returns error? {
 @test:Config {}
 function testServiceLinkedToListener() returns error? {
     Artifact[] listeners = check getArtifacts("listeners", Artifact);
-    Artifact[] services = check getArtifacts("services", Artifact);
-    test:assertEquals(services.length(), 1, "Pre-condition: expected one service");
-    ServiceDetail detail = <ServiceDetail> check getDetailedArtifact("services", services[0].name);
+    ServiceDetail detail = check getSingleServiceDetail();
     test:assertEquals(detail.listeners.length(), 1,
         "Service should be linked to exactly one listener");
     test:assertEquals(detail.listeners[0].name, listeners[0].name,
@@ -158,9 +165,7 @@ function testServiceLinkedToListener() returns error? {
 // Verifies the service exposes at least one resource method.
 @test:Config {}
 function testServiceHasResources() returns error? {
-    Artifact[] services = check getArtifacts("services", Artifact);
-    test:assertEquals(services.length(), 1, "Pre-condition: expected one service");
-    ServiceDetail detail = <ServiceDetail> check getDetailedArtifact("services", services[0].name);
+    ServiceDetail detail = check getSingleServiceDetail();
     test:assertTrue(detail.resources.length() > 0,
         "Service should expose at least one resource");
 }
