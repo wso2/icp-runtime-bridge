@@ -88,7 +88,7 @@ public class Artifacts {
         List<Artifact> result = new ArrayList<>();
         for (Artifact artifact : artifacts) {
             BObject serviceObj = (BObject) artifact.getDetail(SERVICE);
-            if (serviceObj == null || Utils.isicpService(serviceObj, currentModule)) {
+            if (serviceObj == null || Utils.isicpService(serviceObj)) {
                 continue;
             }
             // Skip internal adapter services created by stdlib listeners (e.g. graphql's internal HTTP adapter).
@@ -115,7 +115,7 @@ public class Artifacts {
         Set<BObject> allCandidates = new LinkedHashSet<>();
         for (Artifact artifact : artifacts) {
             BObject serviceObj = (BObject) artifact.getDetail(SERVICE);
-            if (serviceObj == null || Utils.isicpService(serviceObj, currentModule)) {
+            if (serviceObj == null || Utils.isicpService(serviceObj)) {
                 continue;
             }
             if (!SERVICE_NAMES_MAP.containsKey(serviceObj)) {

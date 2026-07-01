@@ -6,5 +6,8 @@ version = "@toml.version@"
 [platform.java21]
 graalvmCompatible = true
 
+[[platform.java21.dependency]]
+path = "../../native/build/libs/icp.runtime.bridge-native-@project.version@.jar"
+
 [build-options]
 remoteManagement=true

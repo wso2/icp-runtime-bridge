@@ -71,7 +71,7 @@ public class Services {
             if (serviceObj == null) {
                 continue;
             }
-            if (Utils.isicpService(serviceObj, currentModule)) {
+            if (Utils.isicpService(serviceObj)) {
                 continue;
             }
             if (!seen.add(serviceObj)) {
