@@ -67,11 +67,17 @@ isolated function getHeartbeat() returns Heartbeat|error {
         component: integration,
         artifacts: {
             listeners: check getListenerDetails(),
-            services: check getServiceDetails(),
-            main: check getMainArtifact()
+            services: check getServiceDetails()
         },
         logLevels: getLogLevels()
     };
+
+    // Include the main artifact only when the integration has one (service-only
+    // integrations have no main function and therefore no main artifact).
+    MainDetail? main = check getMainArtifact();
+    if main is MainDetail {
+        heartbeatForHash.artifacts.main = main;
+    }
 
     // Add runtime only if not empty
     if runtime is string {
@@ -190,7 +196,7 @@ isolated function getArtifacts(string resourceType, typedesc<anydata> t) returns
     'class: "io.ballerina.lib.wso2.icp.Artifacts"
 } external;
 
-isolated function getMainArtifact() returns MainDetail|error =
+isolated function getMainArtifact() returns MainDetail?|error =
 @java:Method {
     'class: "io.ballerina.lib.wso2.icp.Artifacts"
 } external;

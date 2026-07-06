@@ -270,6 +270,7 @@ public class Artifacts {
                 return ValueCreator.createReadonlyRecordValue(env.getCurrentModule(), "MainDetail", mainDetail);
             }
         }
-        return ErrorCreator.createError(StringUtils.fromString("No main artifacts found"));
+        // Service-only integrations (e.g. HTTP services) have no main artifact; this is not an error.
+        return null;
     }
 }
