@@ -14,6 +14,7 @@
 
 import ballerina/jballerina.java;
 import ballerina/test;
+import ballerina/workflow.management;
 
 configurable int testPort = ?;
 
@@ -58,6 +59,12 @@ type ServiceDetail record {
     Resource[] resources;
 };
 
+type MainDetail record {
+    string packageOrg;
+    string packageName;
+    string packageVersion;
+};
+
 // ---------------------------------------------------------------------------
 // External function declarations — call the bridge's Java layer directly.
 //
@@ -74,6 +81,21 @@ isolated function getArtifacts(string resourceType, typedesc<anydata> t) returns
 } external;
 
 isolated function getDetailedArtifact(string resourceType, string name) returns anydata|error =
+@java:Method {
+    'class: "io.ballerina.lib.wso2.icp.Artifacts"
+} external;
+
+// Returns the running program's main artifact, or () for a service-only
+// program (no `main` function). Underpins the optional `main` field in the
+// heartbeat.
+isolated function getMainArtifact() returns MainDetail?|error =
+@java:Method {
+    'class: "io.ballerina.lib.wso2.icp.Artifacts"
+} external;
+
+// Returns the host of the first enabled HTTP listener, or () when there is
+// none. Underpins the heartbeat's `workflowCallbackUrl`.
+isolated function getCallbackHost() returns string? =
 @java:Method {
     'class: "io.ballerina.lib.wso2.icp.Artifacts"
 } external;
@@ -180,4 +202,41 @@ function testRepeatedQueryDoesNotInflateListenerCount() returns error? {
         "Repeated getArtifacts calls should return a stable listener count");
     test:assertEquals(second.length(), 1,
         "Re-queried listener count should still be exactly 1");
+}
+
+// ---------------------------------------------------------------------------
+// Tests — main artifact and workflow callback host
+// ---------------------------------------------------------------------------
+
+// Verifies that getMainArtifact resolves the main artifact without raising an
+// error and returns a well-formed MainDetail. This guards the heartbeat's
+// optional `main` field: the previous implementation raised
+// "No main artifacts found" (and a malformed artifact raises a missing-field
+// error), both of which the `check` below would surface as a test failure.
+//
+// Note: the complementary "service-only program -> nil" path cannot be
+// exercised here because the `bal test` executor is itself a program with a
+// generated main, so a main artifact is always present in the test repository.
+@test:Config {}
+function testMainArtifactResolvedWithoutError() returns error? {
+    MainDetail? main = check getMainArtifact();
+    test:assertTrue(main is MainDetail,
+        "getMainArtifact should resolve a main artifact for the test executable");
+    MainDetail detail = <MainDetail>main;
+    test:assertTrue(detail.packageOrg.length() > 0,
+        "Main artifact packageOrg should be populated");
+    test:assertTrue(detail.packageName.length() > 0,
+        "Main artifact packageName should be populated");
+    test:assertTrue(detail.packageVersion.length() > 0,
+        "Main artifact packageVersion should be populated");
+}
+
+// Verifies that the workflow callback host is derived from the running HTTP
+// listener. A listener created as `new http:Listener(port)` binds to the
+// default host 0.0.0.0.
+@test:Config {}
+function testCallbackHostFromHttpListener() returns error? {
+    string? host = getCallbackHost();
+    test:assertEquals(host, "0.0.0.0",
+        "Callback host should be the default HTTP listener host");
 }
