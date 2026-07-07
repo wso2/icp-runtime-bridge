@@ -35,7 +35,9 @@ import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import static io.ballerina.lib.wso2.icp.Artifacts.LISTENER_NAMES_MAP;
 import static io.ballerina.lib.wso2.icp.Artifacts.SERVICE_NAMES_MAP;
@@ -63,12 +65,16 @@ public class Services {
 
     public List<BListInitialValueEntry> getServiceList(Module currentModule) {
         List<BListInitialValueEntry> artifactEntries = new ArrayList<>();
+        Set<BObject> seen = new HashSet<>();
         for (Artifact artifact : Artifacts.artifacts) {
             BObject serviceObj = (BObject) artifact.getDetail(SERVICE);
             if (serviceObj == null) {
                 continue;
             }
-            if (Utils.isicpService(serviceObj, currentModule)) {
+            if (Utils.isicpService(serviceObj)) {
+                continue;
+            }
+            if (!seen.add(serviceObj)) {
                 continue;
             }
             artifactEntries.add(ValueCreator.createListInitialValueEntry(

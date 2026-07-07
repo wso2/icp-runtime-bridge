@@ -18,6 +18,8 @@ jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     env:
       packageUser: ${{ github.actor }}
       packagePAT: ${{ secrets.GITHUB_TOKEN }}
@@ -46,16 +48,19 @@ jobs:
       
       - name: Run Tests
         run: ./gradlew test --stacktrace --no-daemon
-      
-      - name: Generate Code Coverage Report
-        run: ./gradlew jacocoTestReport --no-daemon
-      
-      - name: Upload Build Artifacts
+
+      - name: Upload Coverage Report
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: '**/target/report/**/*.xml'
+          fail_ci_if_error: false
+
+      - name: Upload Test Reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: build-reports
+          name: test-reports
           path: |
-            **/build/reports/
-            **/build/test-results/
+            **/target/report/
           retention-days: 7

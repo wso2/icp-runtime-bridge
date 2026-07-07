@@ -20,11 +20,15 @@ import io.ballerina.runtime.api.Environment;
 import io.ballerina.runtime.api.Module;
 import io.ballerina.runtime.api.creators.ValueCreator;
 import io.ballerina.runtime.api.repository.Node;
+import io.ballerina.runtime.api.types.ObjectType;
 import io.ballerina.runtime.api.types.Type;
 import io.ballerina.runtime.api.utils.StringUtils;
+import io.ballerina.runtime.api.utils.TypeUtils;
 import io.ballerina.runtime.api.values.BMap;
 import io.ballerina.runtime.api.values.BObject;
 import io.ballerina.runtime.api.values.BString;
+
+import java.util.Set;
 
 import static io.ballerina.lib.wso2.icp.Constants.ARTIFACT;
 import static io.ballerina.lib.wso2.icp.Constants.BALLERINA_HOME;
@@ -65,10 +69,71 @@ public class Utils {
         return "Ballerina " + version + " (Swan Lake Update " + updateVersionText + ")";
     }
 
-    public static boolean isicpService(BObject serviceObj, Module currentModule) {
+    /**
+     * Returns true when a service object belongs to the ICP runtime bridge itself.
+     * Uses a hard-coded org/name check so the filter is correct regardless of which
+     * module calls getArtifacts (including test code that calls the Java layer directly
+     * via @java:Method, where currentModule would otherwise be the test package).
+     */
+    public static boolean isicpService(BObject serviceObj) {
         Type originalType = serviceObj.getOriginalType();
         Module module = originalType.getPackage();
-        return module != null && module.equals(currentModule);
+        if (module == null) {
+            return false;
+        }
+        return "wso2".equals(module.getOrg()) && "icp.runtime.bridge".equals(module.getName());
+    }
+
+    /**
+     * Returns true when a service object is an internal adapter created by a stdlib listener
+     * (e.g. the HTTP service wrapper that graphql:Listener registers internally).
+     * Such services come from ballerina/* or ballerinax/* packages and are not user-defined.
+     */
+    public static boolean isInternalAdapterService(BObject serviceObj) {
+        Type originalType = serviceObj.getOriginalType();
+        Module module = originalType.getPackage();
+        if (module == null) {
+            return false;
+        }
+        String org = module.getOrg();
+        return Constants.BALLERINA.equals(org) || "ballerinax".equals(org);
+    }
+
+    /**
+     * Returns true when {@code candidate} is stored as a direct object field of
+     * {@code container}. This is the primitive used to detect wrapper relationships
+     * between listeners (e.g. the http:Listener field inside a graphql:Listener).
+     */
+    public static boolean isFieldOf(BObject candidate, BObject container) {
+        Type containerType = TypeUtils.getImpliedType(container.getOriginalType());
+        if (!(containerType instanceof ObjectType objectType)) {
+            return false;
+        }
+        for (String fieldName : objectType.getFields().keySet()) {
+            try {
+                if (candidate == container.get(StringUtils.fromString(fieldName))) {
+                    return true;
+                }
+            } catch (RuntimeException ignored) {
+                // Field not accessible or not a matching type — continue.
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Returns true when {@code candidate} is stored as an object field of any other
+     * listener in {@code allListeners}. This identifies listeners that are internal
+     * implementations of a higher-level listener (e.g. the http:Listener inside a
+     * graphql:Listener) so they can be excluded from the user-visible list.
+     */
+    public static boolean isWrappedByAnotherListener(BObject candidate, Set<BObject> allListeners) {
+        for (BObject other : allListeners) {
+            if (other != candidate && isFieldOf(candidate, other)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public static BMap<BString, Object> getArtifact(String name, Module module) {
