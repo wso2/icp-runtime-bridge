@@ -93,7 +93,6 @@ public type Node record {
 public type Heartbeat record {|
     string runtimeId;
     string runtime?;
-    string workflowCallbackUrl?;
     RuntimeType runtimeType;
     string heartbeatVersion = HEARTBEAT_VERSION;
     RuntimeStatus status;
@@ -106,12 +105,12 @@ public type Heartbeat record {|
     string runtimeHash;
     time:Utc timestamp;
     map<log:Level> logLevels?;
+    string workflowCallbackUrl?;
 |};
 
 public type HeartbeatForHash record {|
     string runtimeId;
     string runtime?;
-    string workflowCallbackUrl?;
     RuntimeType runtimeType;
     string heartbeatVersion = HEARTBEAT_VERSION;
     RuntimeStatus status;
@@ -122,6 +121,7 @@ public type HeartbeatForHash record {|
     Node nodeInfo;
     Artifacts artifacts;
     map<log:Level> logLevels?;
+    string workflowCallbackUrl?;
 |};
 
 public type DeltaHeartbeat record {|

@@ -288,15 +288,6 @@ public class Artifacts {
         return false;
     }
 
-    public static Object getCallbackHost(Environment env) {
-        if (artifacts == null) {
-            currentModule = env.getCurrentModule();
-            artifacts = filterArtifacts(env.getRepository().getArtifacts());
-            populateArtifactNamesMap();
-        }
-        return LISTENERS.getCallbackHost(currentModule);
-    }
-
     public static Object getMainArtifact(Environment env) {
         List<Artifact> allArtifacts = env.getRepository().getArtifacts();
         for (Artifact artifact : allArtifacts) {
