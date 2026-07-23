@@ -20,6 +20,7 @@ import ballerina/log;
 import ballerina/observe;
 import ballerina/time;
 import ballerina/uuid;
+import ballerina/workflow.management;
 
 configurable string runtimeIdFile = ".icp_runtime_id";
 
@@ -69,7 +70,8 @@ isolated function getHeartbeat() returns Heartbeat|error {
             services: check getServiceDetails(),
             main: check getMainArtifact()
         },
-        logLevels: getLogLevels()
+        logLevels: getLogLevels(),
+        workflowCallbackUrl: management:enableManagementApi? getWorkflowCallbackUrl() : ()
     };
 
     // Add runtime only if not empty
@@ -94,7 +96,8 @@ isolated function getHeartbeat() returns Heartbeat|error {
         artifacts: heartbeatForHash.artifacts,
         runtimeHash: runtimeHash,
         timestamp: time:utcNow(),
-        logLevels: heartbeatForHash.logLevels
+        logLevels: heartbeatForHash.logLevels,
+        workflowCallbackUrl: heartbeatForHash.workflowCallbackUrl
     };
 
     // Add runtime only if not empty
@@ -178,10 +181,32 @@ isolated function getArtifacts(string resourceType, typedesc<anydata> t) returns
     'class: "io.ballerina.lib.wso2.icp.Artifacts"
 } external;
 
-isolated function getMainArtifact() returns MainDetail|error =
+isolated function getMainArtifact() returns MainDetail?|error =
 @java:Method {
     'class: "io.ballerina.lib.wso2.icp.Artifacts"
 } external;
+
+isolated function getWorkflowCallbackUrl() returns string {
+    string baseUrl = runtimeBaseUrl.trim();
+    // Strip trailing slashes to avoid a malformed "http://host/:port".
+    while baseUrl.endsWith("/") {
+        baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+    }
+    // Isolate the authority (host[:port]); anything before "://" is the scheme.
+    int? schemeIndex = baseUrl.indexOf("://");
+    int authorityStart = schemeIndex is int ? schemeIndex + 3 : 0;
+    string authority = baseUrl.substring(authorityStart);
+    int? pathIndex = authority.indexOf("/");
+    if pathIndex is int {
+        authority = authority.substring(0, pathIndex);
+    }
+    // If runtimeBaseUrl already includes a port, use it as-is rather than
+    // appending the management port and producing "host:8080:9090".
+    if authority.includes(":") {
+        return baseUrl;
+    }
+    return string `${baseUrl}:${management:port}`;
+}
 
 isolated function stopListenerArtifact(string name) returns boolean|error =
 @java:Method {

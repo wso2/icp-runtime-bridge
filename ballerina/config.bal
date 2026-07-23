@@ -28,6 +28,8 @@ configurable string integration = "default_integration";
 configurable string project = "default_project";
 configurable string secret = ?;
 
+configurable string runtimeBaseUrl = "http://localhost";
+
 public function loadConfig() returns IcpConfig|error {
     IcpConfig config = {
         serverUrl: serverUrl,

@@ -105,6 +105,7 @@ public type Heartbeat record {|
     string runtimeHash;
     time:Utc timestamp;
     map<log:Level> logLevels?;
+    string workflowCallbackUrl?;
 |};
 
 public type HeartbeatForHash record {|
@@ -120,6 +121,7 @@ public type HeartbeatForHash record {|
     Node nodeInfo;
     Artifacts artifacts;
     map<log:Level> logLevels?;
+    string workflowCallbackUrl?;
 |};
 
 public type DeltaHeartbeat record {|
