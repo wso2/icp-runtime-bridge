@@ -105,6 +105,12 @@ isolated function getHeartbeat() returns Heartbeat|error {
         heartbeat.runtime = runtime;
     }
 
+    // Add packed OpenAPI definitions only if there are any to send
+    map<json> packedOpenApiDefinitions = getPackedOpenApiDefinitions();
+    if packedOpenApiDefinitions.length() > 0 {
+        heartbeat.openApiDefinitions = packedOpenApiDefinitions;
+    }
+
     return heartbeat;
 }
 

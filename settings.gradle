@@ -42,11 +42,13 @@ rootProject.name = 'module-wso2-icp.runtime.bridge'
 
 include ':checkstyle'
 include ':icp.runtime.bridge-native'
+include ':icp.runtime.bridge-compiler-plugin'
 include ':icp.runtime.bridge-ballerina'
 include ':icp.runtime.bridge-ballerina-tests'
 
 project(':checkstyle').projectDir = file("build-config${File.separator}checkstyle")
 project(':icp.runtime.bridge-native').projectDir = file('native')
+project(':icp.runtime.bridge-compiler-plugin').projectDir = file('compiler-plugin')
 project(':icp.runtime.bridge-ballerina').projectDir = file('ballerina')
 project(':icp.runtime.bridge-ballerina-tests').projectDir = file('ballerina-tests')
 

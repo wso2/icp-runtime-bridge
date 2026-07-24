@@ -1,0 +1,106 @@
+/*
+ * Copyright (c) 2026, WSO2 LLC. (http://wso2.com).
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+plugins {
+    id 'java'
+    id 'checkstyle'
+    id 'com.github.spotbugs'
+}
+
+description = 'Ballerina - WSO2 ICP Runtime Bridge Compiler Plugin'
+
+// The Ballerina compiler API jars (ballerina-lang, ballerina-tools-api, ballerina-parser,
+// ballerina-runtime) and ballerina-to-openapi are not published on public Maven repositories
+// with reliable, unauthenticated access, so they are sourced directly from a local Ballerina
+// distribution instead. Override with -PballerinaHome=/path/to/distribution if needed.
+def ballerinaHome = project.hasProperty('ballerinaHome')
+        ? project.property('ballerinaHome')
+        : ['bal', 'home'].execute().text.trim()
+
+def compilerApiJars = fileTree("${ballerinaHome}/bre/lib").matching {
+    include 'ballerina-lang-*.jar'
+    include 'ballerina-tools-api-*.jar'
+    include 'ballerina-parser-*.jar'
+    include 'ballerina-rt-*.jar'
+}
+
+def openapiMapperJar = fileTree("${ballerinaHome}/repo/bala/ballerina/http/${httpVersion}/java21/compiler-plugin").matching {
+    include '**/ballerina-to-openapi-*.jar'
+}
+
+dependencies {
+    checkstyle project(':checkstyle')
+    checkstyle "com.puppycrawl.tools:checkstyle:${puppycrawlCheckstyleVersion}"
+
+    compileOnly files(compilerApiJars)
+    implementation files(openapiMapperJar)
+    implementation(group: 'io.swagger.core.v3', name: 'swagger-core-jakarta', version: "${swaggerCoreVersion}") {
+        // Pair with the plain (non-jakarta) OpenAPI model classes, matching the variant
+        // ballerina-to-openapi itself was compiled against.
+        exclude group: 'io.swagger.core.v3', module: 'swagger-models-jakarta'
+    }
+    implementation group: 'io.swagger.core.v3', name: 'swagger-models', version: "${swaggerCoreVersion}"
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+def excludePattern = '**/module-info.java'
+tasks.withType(Checkstyle).configureEach {
+    exclude excludePattern
+}
+
+checkstyle {
+    toolVersion "${puppycrawlCheckstyleVersion}"
+    configFile rootProject.file("build-config/checkstyle/build/checkstyle.xml")
+    configProperties = ["suppressionFile" : file("${rootDir}/build-config/checkstyle/build/suppressions.xml")]
+}
+
+checkstyleMain.dependsOn(":checkstyle:downloadCheckstyleRuleFiles")
+
+spotbugsMain {
+    def classLoader = plugins["com.github.spotbugs"].class.classLoader
+    def SpotBugsConfidence = classLoader.loadClass("com.github.spotbugs.snom.Confidence")
+    def SpotBugsEffort = classLoader.loadClass("com.github.spotbugs.snom.Effort")
+    effort = SpotBugsEffort.MAX
+    reportLevel = SpotBugsConfidence.LOW
+    reportsDir = file("$project.buildDir/reports/spotbugs")
+    reports {
+        html.enabled true
+        text.enabled = true
+    }
+    def excludeFile = file("${rootDir}/spotbugs-exclude.xml")
+    if (excludeFile.exists()) {
+        excludeFilter = excludeFile
+    }
+}
+
+spotbugsTest {
+    enabled = false
+}
+
+def icpLibDir = file("${rootDir}/ballerina/lib")
+
+tasks.register('copyBundledLibs', Copy) {
+    dependsOn jar
+    from jar.archiveFile
+    from configurations.runtimeClasspath
+    into icpLibDir
+}
+
+build.dependsOn copyBundledLibs
