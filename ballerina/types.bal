@@ -106,6 +106,7 @@ public type Heartbeat record {|
     time:Utc timestamp;
     map<log:Level> logLevels?;
     string workflowCallbackUrl?;
+    map<json> openApiDefinitions?;
 |};
 
 public type HeartbeatForHash record {|

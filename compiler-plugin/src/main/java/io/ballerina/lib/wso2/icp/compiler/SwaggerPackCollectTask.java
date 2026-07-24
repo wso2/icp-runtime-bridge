@@ -46,7 +46,9 @@ import io.swagger.v3.oas.models.OpenAPI;
 
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -81,18 +83,25 @@ public class SwaggerPackCollectTask implements AnalysisTask<CompilationAnalysisC
         }
 
         Set<String> usedFileNames = new HashSet<>();
+        List<String> generatedFileNames = new ArrayList<>();
         for (Module module : currentPackage.modules()) {
             SemanticModel semanticModel = ctx.compilation().getSemanticModel(module.moduleId());
             for (DocumentId documentId : module.documentIds()) {
                 collectDocumentServices(ctx, project, module, module.document(documentId), semanticModel,
-                        usedFileNames);
+                        usedFileNames, generatedFileNames);
             }
+        }
+
+        if (!generatedFileNames.isEmpty()) {
+            String indexJson = Json.pretty(generatedFileNames);
+            openApiDocs.put(PluginConstants.SWAGGER_SUBDIR + "/" + PluginConstants.INDEX_FILE_NAME,
+                    indexJson.getBytes(StandardCharsets.UTF_8));
         }
     }
 
     private void collectDocumentServices(CompilationAnalysisContext ctx, Project project, Module module,
                                           Document document, SemanticModel semanticModel,
-                                          Set<String> usedFileNames) {
+                                          Set<String> usedFileNames, List<String> generatedFileNames) {
         SyntaxTree syntaxTree = document.syntaxTree();
         ModulePartNode modulePartNode = syntaxTree.rootNode();
         Path filePath = project.documentPath(document.documentId()).orElse(null);
@@ -105,13 +114,14 @@ public class SwaggerPackCollectTask implements AnalysisTask<CompilationAnalysisC
             if (!isHttpService(serviceNode, semanticModel)) {
                 continue;
             }
-            collectService(ctx, project, module, serviceNode, semanticModel, filePath, usedFileNames);
+            collectService(ctx, project, module, serviceNode, semanticModel, filePath, usedFileNames,
+                    generatedFileNames);
         }
     }
 
     private void collectService(CompilationAnalysisContext ctx, Project project, Module module,
                                  ServiceDeclarationNode serviceNode, SemanticModel semanticModel, Path filePath,
-                                 Set<String> usedFileNames) {
+                                 Set<String> usedFileNames, List<String> generatedFileNames) {
         String basePath = getServiceBasePath(serviceNode);
 
         OASGenerationMetaInfo.OASGenerationMetaInfoBuilder builder =
@@ -142,6 +152,7 @@ public class SwaggerPackCollectTask implements AnalysisTask<CompilationAnalysisC
         String openApiJson = Json.pretty(openApi);
         openApiDocs.put(PluginConstants.SWAGGER_SUBDIR + "/" + fileName,
                 openApiJson.getBytes(StandardCharsets.UTF_8));
+        generatedFileNames.add(fileName);
     }
 
     private String uniqueFileName(String moduleName, String basePath, Set<String> usedFileNames) {

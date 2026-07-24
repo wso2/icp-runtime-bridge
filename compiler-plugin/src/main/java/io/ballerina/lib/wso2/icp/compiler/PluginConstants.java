@@ -26,6 +26,13 @@ public final class PluginConstants {
     public static final String SWAGGER_SUBDIR = "swagger";
     public static final String OPENAPI_FILE_SUFFIX = "_openapi.json";
 
+    /**
+     * Fixed-name resource listing every OpenAPI file packed alongside it, so runtime code (and
+     * native-image resource registration, which needs concrete names rather than a directory
+     * scan) only ever needs to look up known resource names, never enumerate the JAR.
+     */
+    public static final String INDEX_FILE_NAME = "index.json";
+
     public static final String SKIPPED_SERVICE_CODE = "SWAGGERPACK_101";
     public static final String IO_ERROR_CODE = "SWAGGERPACK_102";
 

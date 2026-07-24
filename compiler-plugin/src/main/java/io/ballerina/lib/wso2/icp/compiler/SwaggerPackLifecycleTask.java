@@ -41,8 +41,8 @@ import java.util.Optional;
 
 /**
  * Writes the OpenAPI documents collected by {@link SwaggerPackCollectTask} directly into the
- * already-built JAR as {@code resources/swagger/...} entries. Does not touch the semantic model:
- * by the time code generation has completed, it is no longer safe to query.
+ * already-built JAR as {@code swagger/...} entries. Does not touch the semantic model: by the
+ * time code generation has completed, it is no longer safe to query.
  */
 public class SwaggerPackLifecycleTask implements CompilerLifecycleTask<CompilerLifecycleEventContext> {
 
