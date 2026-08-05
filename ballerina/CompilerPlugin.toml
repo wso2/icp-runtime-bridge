@@ -3,7 +3,7 @@ id = "icp.runtime.bridge-compiler-plugin"
 class = "io.ballerina.lib.wso2.icp.compiler.SwaggerPackCompilerPlugin"
 
 [[dependency]]
-path = "lib/icp.runtime.bridge-compiler-plugin-0.2.0-SNAPSHOT.jar"
+path = "lib/icp.runtime.bridge-compiler-plugin-0.2.1-SNAPSHOT.jar"
 
 [[dependency]]
 path = "lib/ballerina-to-openapi-2.4.0.jar"
