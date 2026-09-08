@@ -29,16 +29,14 @@ isolated function failingMetadata() returns map<json>|error =>
     error("workflow runtime is not ready");
 
 @test:Config {}
-function testCapabilityIsAdvertisedOnlyWhenBothConditionsHold() {
-    // The ICP delivers WORKFLOW_MGMT only to runtimes that advertise this, so both halves
-    // matter: an integration that registered no workflows has nothing to manage, and one
-    // whose deployment did not opt in must not be manageable from outside.
-    test:assertEquals(capabilitiesFor(true, true), ["workflowCommands"]);
-    test:assertTrue(capabilitiesFor(true, false) is (),
-            "Management disabled: the runtime must not advertise the capability");
-    test:assertTrue(capabilitiesFor(false, true) is (),
+function testCapabilityFollowsTheWorkflowExecutor() {
+    // The ICP delivers WORKFLOW_MGMT only to runtimes that advertise this, and hosting
+    // workflows is what makes a runtime manageable: a registered workflow integration
+    // advertises the capability, and one that registered no workflows has nothing to
+    // execute commands against. There is no separate opt-in.
+    test:assertEquals(capabilitiesFor(true), ["workflowCommands"]);
+    test:assertTrue(capabilitiesFor(false) is (),
             "No workflow integration: there is nothing to execute commands against");
-    test:assertTrue(capabilitiesFor(false, false) is ());
 }
 
 @test:Config {}
@@ -49,10 +47,10 @@ function testRegisteredMetadataIsPublished() {
     test:assertTrue(workflowExecutor() !is (), "The registered executor must be resolvable");
     test:assertEquals(currentWorkflowMetadata(), document);
 
-    // Tests run with `enableWorkflowManagement = false` (tests/Config.toml), so registering
-    // must not advertise the capability — and must not take the runtime hold either.
-    test:assertTrue(currentCapabilities() is (),
-            "Registration alone must not advertise the capability");
+    // Registering a workflow integration is what makes the runtime manageable: the capability
+    // is advertised from that moment, with no separate flag to opt in.
+    test:assertEquals(currentCapabilities(), ["workflowCommands"],
+            "A registered workflow integration must advertise the capability");
 }
 
 @test:Config {dependsOn: [testRegisteredMetadataIsPublished]}

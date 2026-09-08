@@ -130,9 +130,9 @@ command kind whose mutations cannot tolerate that window must bring its own idem
 operation-level key), not a bigger cache.
 
 The 403 arm deserves a note. The capability is advertised only while a workflow integration is
-registered *and* `enableWorkflowManagement` is true, so a command arriving when either is false
-means the server gated wrongly or the configuration changed since the last heartbeat. The bridge
-refuses it rather than executing something the deployment has switched off.
+registered, so a command arriving when none is means the server gated wrongly or the
+integration deregistered since the last heartbeat. The bridge refuses it rather than executing
+against nothing.
 
 ## Timing
 
@@ -153,13 +153,13 @@ unassessable deadline is no license to run without one.
 
 ## Capability gating
 
-`currentCapabilities()` advertises `workflowCommands` only when both hold:
+`currentCapabilities()` advertises `workflowCommands` exactly when a workflow integration has
+registered an executor (the generated glue ran). There is no separate opt-in: hosting workflows is
+what makes a runtime manageable, and a runtime without a workflow integration has nothing to
+manage.
 
-- a workflow integration has registered an executor (the generated glue ran), and
-- `enableWorkflowManagement = true`.
-
-The ICP sends `WORKFLOW_MGMT` only to runtimes that advertised it, so the integration — not the
-control plane — decides whether it may be managed remotely.
+The ICP sends `WORKFLOW_MGMT` only to runtimes that advertised it, so a runtime is asked to
+execute a command only when it has an executor to execute it with.
 
 `capabilities` is sent on every full heartbeat without field negotiation, unlike `workflowMetadata`
 and `openApiDefinitions`. That is deliberate: the ICP parses the heartbeat as an **open record**, so
@@ -175,11 +175,13 @@ The plumbing is generic; a new kind needs four small pieces and no changes to
 2. **Register an executor** — an `isolated function (map<json>) returns map<json>|error` that runs
    the operation and returns `{httpStatus, body}` exactly as its HTTP API would have answered.
    Follow `registerWorkflowIntegration` if the executor comes from generated glue.
-3. **Advertise a capability** from `currentCapabilities()`, gated on whatever opt-in the feature
-   has, so the ICP only sends the command to runtimes that accept it.
+3. **Advertise a capability** from `currentCapabilities()`, gated on whatever makes the feature
+   available (for workflows, a registered executor), so the ICP only sends the command to
+   runtimes that can execute it.
 4. **Bind the action** — add one arm to `tunneledCommandBinding` in
-   [`ballerina/main.bal`](../ballerina/main.bal), mapping the action to its executor and its
-   opt-in flag. That function is the single dispatch point: the routing in
+   [`ballerina/main.bal`](../ballerina/main.bal), mapping the action to its executor and to
+   whether commands of that kind are accepted (for workflows, that an executor exists). That
+   function is the single dispatch point: the routing in
    `handleControlCommands` and the execution in `handleTunneledCommand` both pick the new kind
    up from this binding alone, so there is no second match to keep in sync. An action that
    reaches the bridge without a binding is reported `FAILED`, never silently completed.

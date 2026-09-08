@@ -123,21 +123,20 @@ isolated function currentWorkflowMetadata() returns map<json>? {
 }
 
 # Returns the capabilities this runtime advertises to the ICP, or `()` when there
-# are none. `workflowCommands` is advertised only when a workflow integration is
-# registered AND the user opted in with `enableWorkflowManagement = true` — the
-# server only tunnels a capability-gated command to runtimes that advertised it.
+# are none. `workflowCommands` is advertised whenever a workflow integration is
+# registered — the server only tunnels a capability-gated command to runtimes that
+# advertised it, and hosting workflows is what makes a runtime manageable.
 #
 # + return - The capability names, or `()`
 isolated function currentCapabilities() returns string[]? {
-    return capabilitiesFor(workflowExecutor() !is (), enableWorkflowManagement);
+    return capabilitiesFor(workflowExecutor() !is ());
 }
 
-// Advertised only when both hold: a workflow integration registered an executor, and the
-// deployment opted in. The ICP tunnels WORKFLOW_MGMT only to runtimes that advertised it, so
-// this is where the integration — not the control plane — decides it may be managed remotely.
-isolated function capabilitiesFor(boolean hasWorkflowExecutor, boolean managementEnabled)
-        returns string[]? {
-    if hasWorkflowExecutor && managementEnabled {
+// Advertised exactly when a workflow integration registered an executor. There is no separate
+// opt-in: a runtime that hosts workflows is managed through the ICP, and one that does not has
+// nothing to manage. The ICP tunnels WORKFLOW_MGMT only to runtimes that advertised it.
+isolated function capabilitiesFor(boolean hasWorkflowExecutor) returns string[]? {
+    if hasWorkflowExecutor {
         return [WORKFLOW_COMMANDS_CAPABILITY];
     }
     return ();

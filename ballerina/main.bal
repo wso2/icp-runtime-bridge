@@ -435,13 +435,18 @@ public class HeartbeatJob {
 # here — the dispatch in `handleControlCommands` and the execution plumbing in
 # `command_tunnel.bal` pick it up from this binding alone.
 #
+# Workflow management is accepted whenever a workflow integration is registered: hosting
+# workflows is what makes a runtime manageable, so there is no separate flag to opt in —
+# a runtime without a workflow integration has no executor and accepts nothing.
+#
 # + action - The control command's action
-# + return - The executor (or `()` when none registered) and the opt-in flag for this
-#            kind, or `()` when the action is not a tunneled command kind
+# + return - The executor (or `()` when none registered) and whether commands of this
+#            kind are accepted, or `()` when the action is not a tunneled command kind
 function tunneledCommandBinding(ControlAction action) returns [TunneledCommandExecutor?, boolean]? {
     match action {
         WORKFLOW_MGMT => {
-            return [workflowExecutor(), enableWorkflowManagement];
+            TunneledCommandExecutor? executor = workflowExecutor();
+            return [executor, executor !is ()];
         }
     }
     return ();

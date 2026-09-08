@@ -138,8 +138,9 @@ isolated function storeCommandResult(TunneledCommandResult result) {
 #
 # + payload - The command payload from the control command
 # + executor - The executor for this command kind, or `()` when none is registered
-# + accepted - Whether this runtime currently accepts this command kind (its opt-in
-#              configuration); `false` yields a FAILED/403 result
+# + accepted - Whether this runtime currently accepts this command kind (for workflow
+#              commands, that a workflow integration is registered); `false` yields a
+#              FAILED/403 result
 # + return - The result to post to `POST /icp/commandResult`, or `()` when another
 #            round is executing the same commandId right now (nothing to post)
 isolated function executeTunneledCommand(TunneledCommandPayload payload,

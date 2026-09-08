@@ -7,5 +7,4 @@
 secret = "test-secret-key-material-32-bytes-min"
 serverUrl = "http://localhost:1"
 enableSSL = false
-enableWorkflowManagement = false
 runtimeHostUrl = "http://localhost:9090"

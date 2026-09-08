@@ -62,14 +62,11 @@ final WorkflowManagementHold workflowManagementHold = new;
 // cannot be released, so it is taken deliberately and once.
 isolated boolean programHeld = false;
 
-// Takes the hold when this bridge offers workflow management as an entry point:
-// a workflow integration has registered, and management is enabled. Called from
-// `registerWorkflowIntegration`, which is the moment both are known — the bridge's
-// own init runs before the integration registers.
+// Takes the hold when this bridge offers workflow management as an entry point: a
+// workflow integration has registered, which is what makes the runtime manageable — there
+// is no separate flag to opt in. Called from `registerWorkflowIntegration`, the moment the
+// integration is known; the bridge's own init runs before the integration registers.
 isolated function holdProgramForWorkflowManagement() {
-    if !enableWorkflowManagement {
-        return;
-    }
     lock {
         if programHeld {
             return;
