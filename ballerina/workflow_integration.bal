@@ -124,7 +124,7 @@ isolated function currentWorkflowMetadata() returns map<json>? {
 
 # Returns the capabilities this runtime advertises to the ICP, or `()` when there
 # are none. `workflowCommands` is advertised only when a workflow integration is
-# registered AND the user opted in with `enableWorkflowManagement = true` — the
+# registered AND `enableWorkflowManagement` is true (the default) — the
 # server only tunnels a capability-gated command to runtimes that advertised it.
 #
 # + return - The capability names, or `()`

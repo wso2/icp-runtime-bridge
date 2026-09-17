@@ -134,7 +134,7 @@ project = "my-project"
 | `environment`          | string          | "Dev"                    | No       | Environment name (Dev, Prod, etc.) |
 | `integration`          | string          | "default_integration"    | No       | Integration name                   |
 | `project`              | string          | "default_project"        | No       | Project name                       |
-| `enableWorkflowManagement` | boolean     | false                    | No       | Allow the ICP to tunnel workflow management commands to this runtime |
+| `enableWorkflowManagement` | boolean     | true                     | No       | Allow the ICP to tunnel workflow management commands to this runtime; set to false to stop its workflows being managed from the ICP |
 | `runtimeHostUrl`       | string          | "http://localhost"       | No       | Reachable host URL of this runtime, used for the Try-It host |
 
 ### Workflow integration
@@ -145,11 +145,12 @@ extra imports or code. The bridge then publishes the integration's **workflow
 metadata** (workflow definitions, human tasks, activities, and durable agents,
 with their JSON schemas) in full heartbeats once the ICP server advertises the
 `workflowMetadata` heartbeat field, so the ICP can render workflow launchers and
-task forms without calling into the integration. Setting
-`enableWorkflowManagement = true` additionally advertises the `workflowCommands`
+task forms without calling into the integration. The bridge also advertises the `workflowCommands`
 capability, allowing the ICP to tunnel workflow management commands (list/start
 workflows, complete human tasks, ...) to be executed in-process — no inbound
-network access to the integration or its Temporal server is required. The bridge
+network access to the integration or its Temporal server is required; set
+`enableWorkflowManagement = false` to stop this runtime's workflows being managed
+from the ICP, while metadata is still published. The bridge
 also publishes the workflow worker's **Temporal task queue** in full heartbeats
 (promoting the next heartbeat to a full one if the worker registers late), which
 the ICP uses to scope listings when integrations share a Temporal namespace.

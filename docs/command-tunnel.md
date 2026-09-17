@@ -156,7 +156,8 @@ unassessable deadline is no license to run without one.
 `currentCapabilities()` advertises `workflowCommands` only when both hold:
 
 - a workflow integration has registered an executor (the generated glue ran), and
-- `enableWorkflowManagement = true`.
+- `enableWorkflowManagement` is true (the default; set it to false to stop this runtime's
+  workflows being managed from the ICP).
 
 The ICP sends `WORKFLOW_MGMT` only to runtimes that advertised it, so the integration — not the
 control plane — decides whether it may be managed remotely.
