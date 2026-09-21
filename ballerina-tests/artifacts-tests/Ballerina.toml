@@ -1,13 +1,13 @@
 [package]
 org = "wso2"
 name = "artifacts_tests"
-version = "0.3.0-SNAPSHOT"
+version = "1.0.1"
 
 [platform.java21]
 graalvmCompatible = true
 
 [[platform.java21.dependency]]
-path = "../../native/build/libs/icp.runtime.bridge-native-0.3.0-SNAPSHOT.jar"
+path = "../../native/build/libs/icp.runtime.bridge-native-1.0.1.jar"
 
 [build-options]
 remoteManagement=true
