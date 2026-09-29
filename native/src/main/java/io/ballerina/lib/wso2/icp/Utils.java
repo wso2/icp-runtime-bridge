@@ -62,11 +62,11 @@ public class Utils {
         return ValueCreator.createReadonlyRecordValue(currentModule, NODE, nodeEntries);
     }
 
-    private static String getBallerinaVersionString(String detail) {
+    static String getBallerinaVersionString(String detail) {
         String version = detail.split("-")[0];
         int minorVersion = Integer.parseInt(version.split("\\.")[1]);
         String updateVersionText = minorVersion > 0 ? " Update " + minorVersion : "";
-        return "Ballerina " + version + " (Swan Lake Update " + updateVersionText + ")";
+        return "Ballerina " + version + " (Swan Lake" + updateVersionText + ")";
     }
 
     /**
