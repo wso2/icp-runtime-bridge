@@ -136,6 +136,7 @@ project = "my-project"
 | `project`              | string          | "default_project"        | No       | Project name                       |
 | `enableWorkflowManagement` | boolean     | true                     | No       | Allow the ICP to tunnel workflow management commands to this runtime; set to false to stop its workflows being managed from the ICP |
 | `runtimeHostUrl`       | string          | "http://localhost"       | No       | Reachable host URL of this runtime, used for the Try-It host |
+| `requireSignedCommands` | boolean        | false                    | No       | Refuse control commands the ICP has not signed. Signed commands are always verified; turn this on once the ICP signs, so a command injected into a heartbeat response is never run |
 
 ### Workflow integration
 
