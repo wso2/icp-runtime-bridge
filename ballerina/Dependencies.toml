@@ -76,7 +76,7 @@ modules = [
 [[package]]
 org = "ballerina"
 name = "http"
-version = "2.16.6"
+version = "2.16.8"
 dependencies = [
 	{org = "ballerina", name = "auth"},
 	{org = "ballerina", name = "cache"},
@@ -274,7 +274,7 @@ dependencies = [
 [[package]]
 org = "ballerina"
 name = "observe"
-version = "1.7.1"
+version = "1.7.2"
 dependencies = [
 	{org = "ballerina", name = "jballerina.java"}
 ]
@@ -355,7 +355,7 @@ modules = [
 [[package]]
 org = "wso2"
 name = "icp.runtime.bridge"
-version = "0.3.0-SNAPSHOT"
+version = "1.0.2"
 dependencies = [
 	{org = "ballerina", name = "crypto"},
 	{org = "ballerina", name = "file"},
@@ -363,6 +363,7 @@ dependencies = [
 	{org = "ballerina", name = "io"},
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "jwt"},
+	{org = "ballerina", name = "lang.array"},
 	{org = "ballerina", name = "lang.runtime"},
 	{org = "ballerina", name = "log"},
 	{org = "ballerina", name = "observe"},
