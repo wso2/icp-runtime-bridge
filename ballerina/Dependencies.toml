@@ -161,6 +161,9 @@ dependencies = [
 	{org = "ballerina", name = "jballerina.java"},
 	{org = "ballerina", name = "lang.__internal"}
 ]
+modules = [
+	{org = "ballerina", packageName = "lang.array", moduleName = "lang.array"}
+]
 
 [[package]]
 org = "ballerina"

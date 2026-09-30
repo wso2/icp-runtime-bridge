@@ -28,6 +28,13 @@ configurable string integration = "default_integration";
 configurable string project = "default_project";
 configurable string secret = ?;
 
+# Refuse control commands the ICP has not signed. A signed command is always verified; this
+# additionally refuses an unsigned one. Off by default so a runtime keeps working with an ICP
+# that does not sign yet — turn it on once the ICP does. Without it, and with `enableSSL`
+# off, anything able to answer this runtime's heartbeats can start and stop its listeners,
+# change its log levels and manage its workflows.
+configurable boolean requireSignedCommands = false;
+
 # Allow the ICP to tunnel workflow management commands to this runtime over the heartbeat
 # channel, executed in-process by the workflow runtime — no management port, no API key.
 # Set to false to stop this runtime's workflows being managed from the ICP.

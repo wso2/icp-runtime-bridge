@@ -221,6 +221,9 @@ public type ControlCommand record {
     time:Utc issuedAt;
     ControlCommandStatus status; // pending, sent, acknowledged, failed
     string payload?;
+    // HMAC-SHA256 the ICP puts on every command, over the fields this runtime acts on and
+    // keyed with the secret it heartbeats with; see `commandSignatureRefusal`.
+    string signature?;
 };
 
 public type LoggerLevelPayload record {|

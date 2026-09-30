@@ -262,6 +262,13 @@ public class HeartbeatJob {
         // commands - which mutate this runtime's own state and must stay ordered - are done.
         [ControlCommand, TunneledCommandExecutor?, boolean][] tunneledCommands = [];
         foreach ControlCommand command in commands {
+            string? refusal = commandSignatureRefusal(command, currentRuntimeId, keyMaterial,
+                    requireSignedCommands);
+            if refusal is string {
+                log:printWarn(string `Refusing a control command from the ICP: ${refusal}. It was not executed.`,
+                        action = command.action);
+                continue;
+            }
             log:printInfo(string `Handling control command: ${command.toJsonString()}`);
             command.status = PENDING;
 
