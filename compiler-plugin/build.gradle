@@ -38,11 +38,11 @@ def compilerApiJars = fileTree("${ballerinaHome}/bre/lib").matching {
 }
 
 // The distribution's bala repo ships exactly one http version, and which one depends on the
-// distribution (2201.13.2 → 2.15.4, 2201.13.4 → 2.16.3). Pinning that version in a property
+// distribution (2201.13.2 → 2.15.4, 2201.13.4 → 2.16.3, 2201.14.0 → 2.18.0). Pinning that version in a property
 // broke whichever environment ran the other distribution — local or CI — so the lookup takes
 // whatever version the distribution in use actually shipped.
 def openapiMapperJar = fileTree("${ballerinaHome}/repo/bala/ballerina/http").matching {
-    include '*/java21/compiler-plugin/**/ballerina-to-openapi-*.jar'
+    include '*/java25/compiler-plugin/**/ballerina-to-openapi-*.jar'
 }
 
 dependencies {
@@ -65,8 +65,8 @@ dependencies {
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 def excludePattern = '**/module-info.java'
@@ -104,12 +104,36 @@ spotbugsTest {
 }
 
 def icpLibDir = file("${rootDir}/ballerina/lib")
+def compilerPluginTomlPlaceHolder = file("${rootDir}/build-config/resources/CompilerPlugin.toml")
+def compilerPluginTomlFile = file("${rootDir}/ballerina/CompilerPlugin.toml")
 
-tasks.register('copyBundledLibs', Copy) {
+// Sync rather than Copy: a jar left over from an earlier build (e.g. the previous distribution's
+// ballerina-to-openapi) would otherwise satisfy a stale CompilerPlugin.toml entry locally while
+// failing on a clean checkout.
+tasks.register('copyBundledLibs', Sync) {
     dependsOn jar
     from jar.archiveFile
     from configurations.runtimeClasspath
     into icpLibDir
 }
 
+// The [[dependency]] entries are generated from exactly the jars copyBundledLibs ships, so the
+// version-specific names (this plugin's own version, and the ballerina-to-openapi version that
+// depends on the Ballerina distribution in use) never have to be kept in sync by hand.
+tasks.register('updateCompilerPluginToml') {
+    dependsOn jar
+    def pluginJarName = jar.archiveFileName
+    def runtimeJars = configurations.runtimeClasspath
+    inputs.file(compilerPluginTomlPlaceHolder)
+    inputs.files(runtimeJars)
+    inputs.property('pluginJarName', pluginJarName)
+    outputs.file(compilerPluginTomlFile)
+    doLast {
+        def jarNames = [pluginJarName.get()] + runtimeJars.files.collect { it.name }
+        def dependencies = jarNames.collect { "[[dependency]]\npath = \"lib/${it}\"\n" }.join('\n')
+        compilerPluginTomlFile.text = "${compilerPluginTomlPlaceHolder.text.trim()}\n\n${dependencies}"
+    }
+}
+
 build.dependsOn copyBundledLibs
+build.dependsOn updateCompilerPluginToml

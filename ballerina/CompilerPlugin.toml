@@ -3,10 +3,10 @@ id = "icp.runtime.bridge-compiler-plugin"
 class = "io.ballerina.lib.wso2.icp.compiler.SwaggerPackCompilerPlugin"
 
 [[dependency]]
-path = "lib/icp.runtime.bridge-compiler-plugin-1.0.2-SNAPSHOT.jar"
+path = "lib/icp.runtime.bridge-compiler-plugin-2.0.0-SNAPSHOT.jar"
 
 [[dependency]]
-path = "lib/ballerina-to-openapi-2.4.0.jar"
+path = "lib/ballerina-to-openapi-2.4.1.jar"
 
 [[dependency]]
 path = "lib/swagger-core-jakarta-2.2.10.jar"
@@ -15,25 +15,7 @@ path = "lib/swagger-core-jakarta-2.2.10.jar"
 path = "lib/swagger-models-2.2.10.jar"
 
 [[dependency]]
-path = "lib/swagger-annotations-jakarta-2.2.10.jar"
-
-[[dependency]]
-path = "lib/jackson-core-2.14.2.jar"
-
-[[dependency]]
-path = "lib/jackson-databind-2.14.2.jar"
-
-[[dependency]]
-path = "lib/jackson-annotations-2.14.2.jar"
-
-[[dependency]]
-path = "lib/jackson-datatype-jsr310-2.14.2.jar"
-
-[[dependency]]
-path = "lib/jackson-dataformat-yaml-2.14.2.jar"
-
-[[dependency]]
-path = "lib/snakeyaml-2.0.jar"
+path = "lib/slf4j-nop-1.7.36.jar"
 
 [[dependency]]
 path = "lib/commons-lang3-3.12.0.jar"
@@ -42,13 +24,31 @@ path = "lib/commons-lang3-3.12.0.jar"
 path = "lib/slf4j-api-1.7.36.jar"
 
 [[dependency]]
-path = "lib/slf4j-nop-1.7.36.jar"
+path = "lib/swagger-annotations-jakarta-2.2.10.jar"
 
 [[dependency]]
-path = "lib/jakarta.validation-api-3.0.2.jar"
+path = "lib/jackson-datatype-jsr310-2.14.2.jar"
+
+[[dependency]]
+path = "lib/jackson-databind-2.14.2.jar"
+
+[[dependency]]
+path = "lib/jackson-annotations-2.14.2.jar"
+
+[[dependency]]
+path = "lib/jackson-core-2.14.2.jar"
+
+[[dependency]]
+path = "lib/jackson-dataformat-yaml-2.14.2.jar"
+
+[[dependency]]
+path = "lib/snakeyaml-2.0.jar"
 
 [[dependency]]
 path = "lib/jakarta.xml.bind-api-3.0.0.jar"
+
+[[dependency]]
+path = "lib/jakarta.validation-api-3.0.2.jar"
 
 [[dependency]]
 path = "lib/jakarta.activation-2.0.0.jar"

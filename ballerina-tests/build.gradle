@@ -20,6 +20,13 @@ plugins {
 apply plugin: 'java'
 
 import org.apache.tools.ant.taskdefs.condition.Os
+import org.gradle.process.ExecOperations
+
+import javax.inject.Inject
+
+abstract class BallerinaExecHelper {
+    @Inject abstract ExecOperations getExecOperations()
+}
 
 description = 'Ballerina - WSO2 Control Plane Tests'
 
@@ -79,13 +86,14 @@ task updateTomlVersions {
 
 task commitTomlFiles {
     onlyIf { System.getenv("CI") != null }
+    def execHelper = project.objects.newInstance(BallerinaExecHelper)
     doLast {
         def files = " "
         testPackages.each{ testPackage ->
             files += "${testPackage}/Ballerina.toml ${testPackage}/Dependencies.toml "
         }
 
-        project.exec {
+        execHelper.execOperations.exec {
             ignoreExitValue true
             if (Os.isFamily(Os.FAMILY_WINDOWS)) {
                 commandLine 'cmd', '/c', "git commit -m \"[Automated] Update the native jar versions\" ${files}"
@@ -211,12 +219,13 @@ task ballerinaTest {
     dependsOn(processTestResources)
     finalizedBy(commitTomlFiles)
 
+    def execHelper = project.objects.newInstance(BallerinaExecHelper)
     doLast {
         testPackages.each { testPackage ->
             if (!skipTests) {
                 def dockerEnvPath = "$project.projectDir/$testPackage/docker.env"
                 try {
-                    exec {
+                    execHelper.execOperations.exec {
                         workingDir "${project.projectDir}/${testPackage}"
                         environment "JAVA_OPTS", "-DBALLERINA_DEV_COMPILE_BALLERINA_ORG=true"
                         if (Os.isFamily(Os.FAMILY_WINDOWS)) {

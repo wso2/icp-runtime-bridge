@@ -6,8 +6,8 @@ distribution = "@ballerina.version@"
 repository = "https://github.com/wso2/icp-runtime-bridge"
 license = ["Apache-2.0"]
 
-[platform.java21]
+[platform.java25]
 graalvmCompatible = true
 
-[[platform.java21.dependency]]
+[[platform.java25.dependency]]
 path = "../native/build/libs/icp.runtime.bridge-native-@project.version@.jar"

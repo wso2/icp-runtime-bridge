@@ -39,10 +39,10 @@ tasks.withType(JavaCompile) {
     options.encoding = 'UTF-8'
 }
 
-sourceCompatibility = JavaVersion.VERSION_21
+sourceCompatibility = JavaVersion.VERSION_25
 
 jacoco {
-    toolVersion = "0.8.10"
+    toolVersion = "${jacocoVersion}"
 }
 
 test {

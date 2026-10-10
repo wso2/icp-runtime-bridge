@@ -80,6 +80,12 @@ release {
     }
 }
 
-task build {
-    dependsOn('icp.runtime.bridge-ballerina:build')
+if (tasks.names.contains('build')) {
+    tasks.named('build') {
+        dependsOn('icp.runtime.bridge-ballerina:build')
+    }
+} else {
+    tasks.register('build') {
+        dependsOn('icp.runtime.bridge-ballerina:build')
+    }
 }

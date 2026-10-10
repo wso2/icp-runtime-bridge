@@ -1,13 +1,13 @@
 [package]
 org = "wso2"
 name = "icp.runtime.bridge"
-version = "1.0.2-SNAPSHOT"
-distribution = "2201.13.2"
+version = "2.0.0-SNAPSHOT"
+distribution = "2201.14.0"
 repository = "https://github.com/wso2/icp-runtime-bridge"
 license = ["Apache-2.0"]
 
-[platform.java21]
+[platform.java25]
 graalvmCompatible = true
 
-[[platform.java21.dependency]]
-path = "../native/build/libs/icp.runtime.bridge-native-1.0.2-SNAPSHOT.jar"
+[[platform.java25.dependency]]
+path = "../native/build/libs/icp.runtime.bridge-native-2.0.0-SNAPSHOT.jar"

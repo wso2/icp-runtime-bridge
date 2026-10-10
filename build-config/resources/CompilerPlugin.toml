@@ -1,0 +1,3 @@
+[plugin]
+id = "icp.runtime.bridge-compiler-plugin"
+class = "io.ballerina.lib.wso2.icp.compiler.SwaggerPackCompilerPlugin"

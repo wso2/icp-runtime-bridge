@@ -3,10 +3,10 @@ org = "wso2"
 name = "@package.name@"
 version = "@toml.version@"
 
-[platform.java21]
+[platform.java25]
 graalvmCompatible = true
 
-[[platform.java21.dependency]]
+[[platform.java25.dependency]]
 path = "../../native/build/libs/icp.runtime.bridge-native-@project.version@.jar"
 
 [build-options]

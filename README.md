@@ -14,7 +14,7 @@ The `icp-runtime-bridge` is a Ballerina library that provides a runtime bridge b
 - **Artifact Synchronization**: Real-time synchronization of deployed artifacts, services, and APIs
 - **Status Monitoring**: Continuous tracking of runtime and artifact states (RUNNING, OFFLINE, etc.)
 - **Configuration Management**: Flexible configuration through environment variables or TOML files
-- **Native Performance**: Built with Java 21 platform dependencies for optimal performance
+- **Native Performance**: Built with Java 25 platform dependencies for optimal performance
 
 ## Architecture
 
@@ -38,8 +38,8 @@ The bridge operates as an agent within Ballerina runtime environments and consis
 
 ### Prerequisites
 
-- **Java 21** (Temurin distribution recommended)
-- **Ballerina** 2201.13.2
+- **Java 25** (Temurin distribution recommended)
+- **Ballerina** 2201.14.0
 - **Gradle** (included via wrapper)
 
 ### Build Commands
