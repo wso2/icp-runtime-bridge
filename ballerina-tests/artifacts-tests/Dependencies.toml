@@ -336,7 +336,7 @@ dependencies = [
 [[package]]
 org = "wso2"
 name = "artifacts_tests"
-version = "2.0.0-SNAPSHOT"
+version = "2.0.0"
 dependencies = [
 	{org = "ballerina", name = "http"},
 	{org = "ballerina", name = "jballerina.java"},
